@@ -1,0 +1,10 @@
+# Base
+#... in band deps
+# bots
+aiogram
+#dicts
+prodict
+#geodb
+pysyge
+maxminddb
+
