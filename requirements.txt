@@ -3,8 +3,10 @@
 # bots
 aiogram
 #dicts
-prodict
 #geodb
 pysyge
 maxminddb
 
+#clickhouse
+clickhouse-driver
+aioch

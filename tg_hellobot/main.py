@@ -1,5 +1,12 @@
 from band import dome
 
+"""
+Useful links:
+https://habr.com/post/322078/
+
+"""
+
+
 @dome.expose(role=dome.HANDLER)
 async def main(**data):
     if 'message' in data and 'new_chat_member' in data['message']:

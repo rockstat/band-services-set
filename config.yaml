@@ -13,4 +13,12 @@ proxy_checker:
   auth: {{ENDPOINT_AUTH}}
   notify: {{PROXY_CHECK_NOTIFY}}
 
-rucaptcha_key: {{RUCAPTCHA_KEY}}
+
+rucap_api_gw:
+  rucaptcha_key: {{RUCAPTCHA_KEY}}
+
+# Services  blocks
+send_mixpanel:
+  additiolan_channels: yes
+  mixpanel_token: {{MIXPANEL_TOKEN}}
+  mixpanel_api_secret: {{MIXPANEL_API_SECRET}}
