@@ -4,15 +4,14 @@ env: {{ ENV }}
 
 bind_addr: {{ HOST|default('0.0.0.0') }}
 http_port: {{ PORT|default('8080') }}
-redis_dsn: {{ REDIS_DSN|default('redis://127.16.25.1') }}
-band_url: {{ BAND_URL|default('http://172.16.25.1:10000') }}
+redis_dsn: redis://{{REDIS_HOST}}:{{REDIS_PORT or '6379'}}/{{REDIS_DB or 2}}
+band_url: {{ BAND_URL|default('http://band:8080') }}
 
 proxy_checker:
   list: {{ENDPOINT_PROXY_LIST}}
   regions: {{ENDPOINT_REGION_LIST}}
   auth: {{ENDPOINT_AUTH}}
   notify: {{PROXY_CHECK_NOTIFY}}
-
 
 rucap_api_gw:
   rucaptcha_key: {{RUCAPTCHA_KEY}}

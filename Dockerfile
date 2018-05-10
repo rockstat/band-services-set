@@ -1,4 +1,4 @@
-FROM rst/band-py
+FROM rst/band-base
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
 # RUN apt-get update && apt-get install -y --no-install-recommends \
 # 		some-dep \
