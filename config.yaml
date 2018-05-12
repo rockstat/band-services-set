@@ -2,17 +2,17 @@ name: {{ NAME }}
 env: {{ ENV }}
 
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
-redis_dsn: "{{REDIS_DSN|default('redis://'+REDIS_HOST|string+'6379/0')}}"
-band_url: {{ BAND_URL }}
+redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
+band_url: "{{ BAND_URL }}"
 # redis_params: {}
 proxy_checker:
-  list: {{ENDPOINT_PROXY_LIST}}
-  regions: {{ENDPOINT_REGION_LIST}}
-  auth: {{ENDPOINT_AUTH}}
-  notify: {{PROXY_CHECK_NOTIFY}}
+  list: "{{ENDPOINT_PROXY_LIST}}"
+  regions: "{{ENDPOINT_REGION_LIST}}"
+  auth: "{{ENDPOINT_AUTH}}"
+  notify: "{{PROXY_CHECK_NOTIFY}}"
 
 rucap_api_gw:
-  rucaptcha_key: {{RUCAPTCHA_KEY}}
+  rucaptcha_key: "{{RUCAPTCHA_KEY}}"
 
 send_mixpanel:
   redis_params:
