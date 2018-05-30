@@ -1,7 +1,7 @@
 import subprocess
 import os.path
 import maxminddb
-from band import dome, logger, RESULT_INTERNAL_ERROR, RESULT_NOT_LOADED_YET
+from band import dome, logger, settings, RESULT_INTERNAL_ERROR, RESULT_NOT_LOADED_YET
 from prodict import Prodict
 """
 Library docs: https://github.com/maxmind/MaxMind-DB-Reader-python
@@ -12,21 +12,18 @@ https://github.com/maxmind/libmaxminddb
 """
 
 state = Prodict(db=None)
-PATH = "./data"
-ARCH = f"{PATH}/a.zip"
-DB = f"{PATH}/GeoLite2-City.mmdb"
-DB_URL = 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz'
-CMD = f'mkdir -p {PATH} && wget -q -O {ARCH} {DB_URL} && tar -zxf {ARCH} --strip=1 -C {PATH}'
 
 
 @dome.tasks.add
 async def download_db():
     try:
-        if not os.path.isfile(DB):
-            logger.info('downloading database. cmd: %s', CMD)
-            out = subprocess.call(CMD, shell=True)
+        if not os.path.isfile(settings.db_file):
+            logger.info('downloading database. cmd: %s', settings.get_cmd)
+            out = subprocess.call(settings.get_cmd, shell=True)
             logger.info('download result %s', out)
-        state.db = maxminddb.open_database(DB)
+            out = subprocess.call(settings.extract_cmd, shell=True)
+            logger.info('extract result %s', out)
+        state.db = maxminddb.open_database(settings.db_file)
     except Exception:
         logger.exception('download err')
 

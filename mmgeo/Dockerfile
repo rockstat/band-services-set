@@ -11,4 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE ${PORT}
 COPY . .
 
+RUN mkdir data
 ENTRYPOINT [ "python", "-m", "service"]

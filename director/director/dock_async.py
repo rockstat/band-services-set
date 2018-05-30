@@ -2,9 +2,8 @@ from pathlib import Path
 from collections import namedtuple
 import aiofiles
 import asyncio
-from inflection import underscore
+
 import aiodocker
-from aiofiles import os as aios
 import os
 import stat
 import re
@@ -13,133 +12,33 @@ import ujson
 import subprocess
 from pprint import pprint
 from band import logger
+from .image_navigator import ImageNavigator
+from .utils import underdict, tar_image_cmd, pack_ports, unpack_ports, def_labels, inject_attrs, short_info
 """
-
 links:
 http://aiodocker.readthedocs.io/en/latest/
 https://docs.docker.com/engine/api/v1.37/#operation/ContainerList
 https://docs.docker.com/engine/api/v1.24/#31-containers
 """
 
-
-def tar_image_cmd(path):
-    return ['tar', '-C', path, '-c', '-X', '.dockerignore', '.']
-
-
-def underdict(obj):
-    if isinstance(obj, dict):
-        new_dict = {}
-        for key, value in obj.items():
-            key = underscore(key)
-            new_dict[key] = underdict(value)
-        return new_dict
-    # if hasattr(obj, '__iter__'):
-    #     return [underdict(value) for value in obj]
-    else:
-        return obj
-
-
-def inject_attrs(cont):
-    attrs = underdict(cont._container)
-    attrs['name'] = (attrs['name']
-                     if 'name' in attrs else attrs['names'][0]).strip('/')
-    attrs['short_id'] = attrs['id'][:12]
-    if 'state' in attrs and 'status' in attrs['state']:
-        attrs['status'] = attrs['state']['status']
-    if 'config' in attrs and 'labels' in attrs['config']:
-        attrs['labels'] = attrs['config']['labels']
-    cont.attrs = Prodict.from_dict(attrs)
-    return cont
-
-
-def pack_ports(plist=[]):
-    return ':'.join([str(p) for p in plist])
-
-
-def unpack_ports(pstr):
-    return pstr and [int(p) for p in pstr.split(':')] or []
-
-
-def def_labels(a_ports=[]):
-    return Prodict(inband='inband', ports=pack_ports(a_ports))
-
-
-def short_info(container):
-    if hasattr(container, 'attrs'):
-        inject_attrs(container)
-    ca = container.attrs
-    dic = Prodict.from_dict({
-        key: getattr(container.attrs, key)
-        for key in ['short_id', 'name', 'status']
-    })
-    dic.ports = []
-    if 'labels' in ca:
-        if 'ports' in ca.labels:
-            dic.ports = unpack_ports(ca.labels.ports)
-    return dic
-
-
-def image_name(name):
-    return f'rst/service-{name}'
-
-
 ImageObj = namedtuple('ImageObj', 'name category path')
 img_cat = Prodict(user='user', collection='collection', base='base')
-
-
-class ImageNavigator():
-    def __init__(self, images):
-        self.images = images
-        self.coll_path = os.path.realpath(images.collection.path)
-        self.user_path = os.path.realpath(images.user.path)
-        self.base_path = os.path.realpath(images.base.path)
-
-    async def lst_check_dir(self, path):
-        res = []
-        for f in os.listdir(path):
-            item = await self.check_dir(os.path.join(path, f))
-            if item: res.append(item)
-        return res
-
-    async def check_dir(self, path):
-        st = await aios.stat(path)
-        bn = os.path.basename(path)
-        dn = os.path.dirname(path)
-        if stat.S_ISDIR(st.st_mode) and not bn.startswith('.'):
-            return (path, dn, bn,)
-
-    async def lst(self):
-        res = []
-
-        user_list = await self.lst_check_dir(self.user_path)
-        res += list([(p, img_cat.user, b) for p, d, b in user_list])
-
-        clt_list = await self.lst_check_dir(self.coll_path)
-        res += list([(d, img_cat.collection, b) for p, d, b in clt_list])
-
-        base_img = await self.check_dir(self.base_path)
-        if base_img:
-            p, d, b = base_img
-            res.append((p, img_cat.base, b,))
-        
-        return res
 
 
 class Dock():
     """
     """
 
-    def __init__(self, images, container_params, container_env,
-                 **kwargs):
+    def __init__(self, images, container_params, container_env, **kwargs):
         self.dc = aiodocker.Docker()
-        self.nav = ImageNavigator(images)
+        self.imgnav = ImageNavigator(images)
         self.initial_ports = list(range(8900, 8999))
         self.available_ports = list(self.initial_ports)
-        self.images = Prodict.from_dict(images)
         self.container_env = Prodict.from_dict(container_env)
         self.container_params = Prodict.from_dict(container_params)
 
     async def inspect_containers(self):
+        await self.imgnav.load()
         conts = await self.containers()
         for cont in conts.values():
             await self.inspect_container(cont)
@@ -230,14 +129,12 @@ class Dock():
             img_path = ''
         else:
             # rebuild base image
-            await self.create_image(self.images.base.name,
-                                    self.images.base.path)
-            # params for service image
-            img_path = self.images.collection.path
+            await self.create_image(self.imgnav.base.name,
+                                    self.imgnav.base.path)
 
         # service image
-        service_img_name = f'rst/service-{name}'
-        img = await self.create_image(service_img_name, img_path)
+        
+        img = await self.create_image(self.imgnav[name].name, self.imgnav[name].path)
 
         def take_port():
             return {

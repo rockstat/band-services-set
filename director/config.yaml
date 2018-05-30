@@ -1,18 +1,18 @@
 name: band
-listen: "{{HOST|default('0.0.0.0')}}:{{BAND_PORT}}"
+listen: "{{HOST|default('0.0.0.0')}}:{{DIRECTOR_PORT}}"
 env: {{ ENV }}
 
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
-band_url: "{{ BAND_URL }}"
 
 images:
-  base:
+  - name: rst/band-base
+    runnable: false
     path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
-    name: rst/band-base
-  collection:
+  - prefix: rst/band-
+    collection: true
     path: "{{IMAGES_PATH}}/band_collection"
-    name: rst/band-service-base
-  user:
+  - prefix: rst/user-
+    collection: true
     path: "{{IMAGES_PATH}}/user"
 
 container_params:
@@ -22,6 +22,5 @@ container_params:
   
 container_env:
   HOST: '0.0.0.0'
-  BAND_URL: "{{BAND_URL|default('http://{{BIND_HOST_IP}}:{{PORT}}')}}"
   REDIS_HOST: "{{REDIS_HOST_ISOLATED}}"
   REDIS_DSN: "redis://{{REDIS_HOST_ISOLATED}}:{{REDIS_PORT|default(6379)}}"

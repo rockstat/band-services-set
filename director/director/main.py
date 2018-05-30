@@ -6,7 +6,7 @@ from itertools import count
 from prodict import Prodict
 
 from band import (settings, dome, rpc, logger, app, RESULT_OK, BAND_SERVICE,
-                  KERNEL_SERVICE, NOTIFY_ALIVE, REQUEST_STATUS)
+                  FRONTIER_SERVICE, NOTIFY_ALIVE, REQUEST_STATUS)
 from .constants import STATE_RUNNING
 
 from .dock_async import Dock
@@ -50,7 +50,7 @@ class State:
 
     async def state_changed(self):
         methods = await self.registrations()
-        await rpc.notify(KERNEL_SERVICE, 'services', methods=methods)
+        await rpc.notify(FRONTIER_SERVICE, 'services', methods=methods)
 
     async def unregister(self, name):
         if self.exists(name):
@@ -83,7 +83,7 @@ class State:
         self._state[name].update(info)
 
     async def alive_service(self, name):
-        if name != KERNEL_SERVICE:
+        if name != FRONTIER_SERVICE:
             await state.examine_container(name)
         await run_task(self.state_changed())
 
