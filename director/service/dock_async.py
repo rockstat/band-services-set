@@ -129,13 +129,12 @@ class Dock():
     """
     """
 
-    def __init__(self, images_path, images, container_params, container_env,
+    def __init__(self, images, container_params, container_env,
                  **kwargs):
         self.dc = aiodocker.Docker()
         self.nav = ImageNavigator(images)
         self.initial_ports = list(range(8900, 8999))
         self.available_ports = list(self.initial_ports)
-        self.images_path = images_path
         self.images = Prodict.from_dict(images)
         self.container_env = Prodict.from_dict(container_env)
         self.container_params = Prodict.from_dict(container_params)
