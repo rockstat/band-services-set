@@ -1,0 +1,12 @@
+name: send_mnixpanel
+env: {{ ENV }}
+
+listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
+redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
+band_url: "{{ BAND_URL }}"
+
+
+redis_params:
+  listen_all: yes
+mixpanel_token: "{{MIXPANEL_TOKEN}}"
+mixpanel_api_secret: "{{MIXPANEL_API_SECRET}}"

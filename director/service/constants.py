@@ -1,0 +1,3 @@
+
+STATE_RUNNING = 'running'
+

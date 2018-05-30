@@ -4,9 +4,9 @@
 aiogram
 #dicts
 #geodb
-pysyge
-maxminddb
+# pysyge
+# maxminddb
 
 #clickhouse
-clickhouse-driver
-aioch
+# clickhouse-driver
+# aioch

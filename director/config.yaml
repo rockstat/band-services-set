@@ -1,0 +1,29 @@
+name: band
+listen: "{{HOST|default('0.0.0.0')}}:{{BAND_PORT}}"
+env: {{ ENV }}
+
+redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
+band_url: "{{ BAND_URL }}"
+
+
+
+images_path: {{IMAGES_PATH}}
+images:
+  base:
+    path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
+    name: rst/band-base
+  collection:
+    path: "{{IMAGES_PATH}}/band_collection"
+    name: rst/band-service-base
+  user:
+    path: "{{USER_IMAGES_PATH}}"
+
+container_params:
+  network: "{{NETWORK|default('custom')}}"
+  memory: 367001600 # limit 350mb
+  bind_ip: "{{BIND_HOST_IP}}"
+container_env:
+  HOST: '0.0.0.0'
+  BAND_URL: "{{BAND_URL|default('http://{{BIND_HOST_IP}}:{{PORT}}')}}"
+  REDIS_HOST: "{{REDIS_HOST_ISOLATED}}"
+  REDIS_DSN: "redis://{{REDIS_HOST_ISOLATED}}:{{REDIS_PORT|default(6379)}}"

@@ -1,0 +1,12 @@
+---
+name: proxycheck
+env: {{ ENV }}
+
+listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
+redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
+band_url: "{{ BAND_URL }}"
+
+list: "{{ENDPOINT_PROXY_LIST}}"
+regions: "{{ENDPOINT_REGION_LIST}}"
+auth: "{{ENDPOINT_AUTH}}"
+notify: "{{PROXY_CHECK_NOTIFY}}"

@@ -1,1 +1,0 @@
-NAME=$1 nodemon -e py --exec python3 -m $1

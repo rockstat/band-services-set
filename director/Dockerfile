@@ -1,9 +1,5 @@
 FROM rst/band-base
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-# 		some-dep \
-# 	&& rm -rf /var/lib/apt/lists/*
-
 
 WORKDIR /usr/src/services
 
@@ -15,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE ${PORT}
 COPY . .
 
-ENTRYPOINT [ "python", "-m"]
+ENTRYPOINT [ "python", "-m", "service"]
