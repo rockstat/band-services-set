@@ -11,4 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE ${PORT}
 COPY . .
 
-ENTRYPOINT [ "python", "-m", "service"]
+RUN mkdir -p data
+
+ENTRYPOINT [ "python", "-m", "sxgeo"]

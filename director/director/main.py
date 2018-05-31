@@ -5,7 +5,7 @@ from time import time
 from itertools import count
 from prodict import Prodict
 
-from band import (settings, dome, rpc, logger, app, RESULT_OK, BAND_SERVICE,
+from band import (settings, dome, rpc, logger, app, RESULT_OK,
                   FRONTIER_SERVICE, NOTIFY_ALIVE, REQUEST_STATUS)
 from .constants import STATE_RUNNING
 
@@ -14,9 +14,12 @@ from .dock_async import Dock
 dock = Dock(**settings)
 logger.info('Initializing director api')
 
+async def shutdown(app):
+    await dock.close()
+app.on_shutdown.append(shutdown)
+
 async def run_task(coro):
     return await app['scheduler'].spawn(coro)
-
 
 class State:
     def __init__(self):
@@ -25,7 +28,8 @@ class State:
     def ensure_struct(self, name):
         if name not in self._state or not self._state[name]:
             ms = round(time() * 1000)
-            self._state[name] = Prodict(name=name, status='unknown', init=ms, methods=[])
+            self._state[name] = Prodict(
+                name=name, status='unknown', init=ms, methods=[])
 
     def set_status(self, name, status):
         self.ensure_struct(name)
@@ -136,7 +140,7 @@ async def images(**params):
     """
     List images
     """
-    return await dock.nav.lst()
+    return await dock.imgnav.lst()
 
 
 @dome.expose()

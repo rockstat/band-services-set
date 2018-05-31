@@ -19,6 +19,7 @@ Contains collection of Rockstat depended services and some examples
         'band.api_gateway',
         'band.proxycheck',
         'band.tg_hellobot',
+        'band.send_mixpanel',
 
     ],
     url='https://github.com/rockstat',

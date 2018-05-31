@@ -23,31 +23,13 @@ Built on top of asyncio, for communication uses JSON-RPC2 over Redis PubSub so t
 
 ## Running (DEV host)
 
-add dev .env file containg
+configure .env and .env.local (will be copied to container)
 
     ... plz ask me to take actual version
 
 
 host.docker.internal is internal host machine alias in the docker for mac
 
-
-running band (by default starting on 10000 port)
-
-    ./run_band
-
-run service
-
-    http get http://localhost:10000/run/tg_hellobot
-
-check
-
-    http get http://localhost:10000/list
-
-call
-
-    http get http://localhost:10000/call/tg_hellobot/<method>
-
-`http` is executable of httpie library
 
 ### Maintain
 

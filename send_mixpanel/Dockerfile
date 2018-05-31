@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE ${PORT}
 COPY . .
 
-ENTRYPOINT [ "python", "-m", "service"]
+ENTRYPOINT [ "python", "-m", "send_mixpanel"]

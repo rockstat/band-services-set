@@ -29,10 +29,10 @@ async def download_db():
 
 
 @dome.expose(role=dome.HANDLER)
-async def get(ip, **params):
+async def get(data, **params):
     try:
         if state.db:
-            location = state.db.get(ip)
+            location = state.db.get(data['ip'])
             return location
         return {'result': RESULT_NOT_LOADED_YET}
     except Exception:

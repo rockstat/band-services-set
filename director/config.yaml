@@ -1,4 +1,4 @@
-name: band
+name: director
 listen: "{{HOST|default('0.0.0.0')}}:{{DIRECTOR_PORT}}"
 env: {{ ENV }}
 
@@ -6,10 +6,10 @@ redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
 
 images:
   - name: rst/band-base
-    runnable: false
     path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
   - prefix: rst/band-
     collection: true
+    base: rst/band-base
     path: "{{IMAGES_PATH}}/band_collection"
   - prefix: rst/user-
     collection: true

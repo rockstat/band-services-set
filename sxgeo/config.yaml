@@ -3,5 +3,7 @@ env: {{ ENV }}
 
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
-band_url: "{{ BAND_URL }}"
 
+db_file: ./data/SxGeoCity.dat
+get_cmd: wget -q -O ./data/sxgdb.zip http://sypexgeo.net/files/SxGeoCityMax_utf8.zip
+extract_cmd: unzip -o ./data/sxgdb.zip -d ./data

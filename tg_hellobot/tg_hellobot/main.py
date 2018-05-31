@@ -8,7 +8,7 @@ https://habr.com/post/322078/
 
 
 @dome.expose(role=dome.HANDLER)
-async def main(**data):
+async def main(data, **params):
     if 'message' in data and 'new_chat_member' in data['message']:
         member = data['message']['new_chat_member']
         chat = data['message']['chat']

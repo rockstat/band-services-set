@@ -124,26 +124,22 @@ class Dock():
     async def run_container(self, name, params):
 
         # build custom images
-        if False:
-
-            img_path = ''
-        else:
+        simg = self.imgnav[name]
+        if simg.base:
+            bimg = self.imgnav[simg.base]
             # rebuild base image
-            await self.create_image(self.imgnav.base.name,
-                                    self.imgnav.base.path)
+            await self.create_image(bimg.name, bimg.path)
 
-        # service image
-        
-        img = await self.create_image(self.imgnav[name].name, self.imgnav[name].path)
+        img = await self.create_image(simg.name, simg.path)
 
-        def take_port():
+        def allocate():
             return {
                 'HostIp': self.container_params.bind_ip,
                 'HostPort': str(self.allocate_port())
             }
 
         ports = {
-            port: [take_port()]
+            port: [allocate()]
             for port in img.container_config.exposed_ports.keys() or {}
         }
         a_ports = [port[0]['HostPort'] for port in ports.values()]
@@ -175,7 +171,7 @@ class Dock():
             }
         })
 
-        print(config)
+        # print(config)
 
         logger.info(f"starting container {name}. ports: {config.Ports}")
         c = await self.dc.containers.create_or_replace(name, config)
@@ -184,3 +180,6 @@ class Dock():
         c = inject_attrs(c)
         logger.info(f'started container {c.attrs.name} [{c.attrs.id}]')
         return short_info(c)
+    
+    async def close(self):
+        await self.dc.close()
