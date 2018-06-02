@@ -5,6 +5,76 @@ from pprint import pprint
 import os
 import stat
 import re
+import subprocess
+
+from .constants import DEF_LABELS
+
+
+class BandImage(Prodict):
+    name: str
+    path: str
+    key: str
+    base: str
+    p: subprocess.Popen
+    d: Prodict
+
+    def set_data(self, data):
+        self.d = Prodict.from_dict(data)
+        return self
+
+    @property
+    def cmd(self):
+        return self.d.Config.Cmd
+
+    @property
+    def id(self):
+        return self.d.Id
+
+    @property
+    def ports(self):
+        return list(self.d.ContainerConfig.ExposedPorts.keys())
+
+    def run_struct(self, name, img, network, memory, bind_ip, host_ports, env):
+        return Prodict.from_dict({
+            'Image': self.id,
+            'Hostname': name,
+            'Cmd': img.cmd,
+            'Labels': {'inband': 'user'},
+            'Env': [f"{k}={v}" for k, v in env.items()],
+            'StopSignal': 'SIGTERM',
+            'HostConfig': {
+                'RestartPolicy': {
+                    'Name': 'unless-stopped'
+                },
+                'PortBindings': {
+                    p: [{
+                        'HostIp': bind_ip,
+                        'HostPort': str(hp)
+                    }]
+                    for hp, p in zip(host_ports, img.ports)
+                },
+                'NetworkMode': network,
+                'Memory': memory
+            }
+        })
+
+    def __enter__(self):
+        self.p = subprocess.Popen(
+            tar_image_cmd(self.path), stdout=subprocess.PIPE)
+        return Prodict.from_dict({
+            'fileobj': self.p.stdout,
+            'encoding': 'identity',
+            'tag': self.name,
+            'labels': DEF_LABELS,
+            'stream': True
+        })
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.p.kill()
+
+
+def tar_image_cmd(path):
+    return ['tar', '-C', path, '-c', '-X', '.dockerignore', '.']
 
 
 class ImageNavigator():
@@ -64,9 +134,10 @@ class ImageNavigator():
     def add_image(self, name, path, **kwargs):
         path = os.path.realpath(path)
         key = kwargs.pop('key', None)
-        self._images[name] = Prodict(name=name, path=path, key=key, **kwargs)
+        img = BandImage(name=name, path=path, key=key, **kwargs)
+        self._images[name] = img
         if key:
-            self._keys[key] = self._images[name]
+            self._images[key] = img
 
     async def check_source(self, path):
         st = await aios.stat(path)

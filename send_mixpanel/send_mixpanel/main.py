@@ -88,9 +88,6 @@ async def uploader():
             logger.exception('mp upload')
 
 
-# await app['rpool'].subscribe(app['mpsc'].channel('any'))
-
-
 def grouper(iterable, n, fillvalue=None):
     """
     Collect data into fixed-length chunks or blocks
