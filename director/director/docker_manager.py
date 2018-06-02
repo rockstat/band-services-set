@@ -14,7 +14,7 @@ from pprint import pprint
 from band import logger
 from .image_navigator import ImageNavigator
 from .band_container import BandContainer
-from .constants import DEF_LABELS
+from .constants import DEF_LABELS, STATUS_RUNNING
 
 
 class DockerManager():
@@ -46,9 +46,13 @@ class DockerManager():
             )
         return [cont.short_info for cont in conts.values()]
 
-    async def containers(self, struct=dict):
-        conts = await self.dc.containers.list(all=True)
-        lst = list(bc for bc in [BandContainer(c) for c in conts] if bc.inband())
+    async def containers(self, struct=dict, status=None):
+        filters = Prodict(label=['inband'])
+        if status:
+            filters.status = [status]
+        conts = await self.dc.containers.list(
+            all=True, filters=ujson.dumps(filters))
+        lst = list(bc for bc in [BandContainer(c) for c in conts])
         return lst if struct == list else {c.name: c for c in lst}
 
     async def conts_list(self):

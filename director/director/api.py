@@ -6,17 +6,47 @@ from time import time
 import asyncio
 
 from band import settings, dome, rpc, logger, app, run_task
-from band.constants import NOTIFY_ALIVE, REQUEST_STATUS
+from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE
 
-from . import dock, state
+from . import STATUS_RUNNING, dock, state
+
+
+@dome.expose(name='list')
+async def lst(**params):
+    """
+    Containers list with status information
+    """
+    status = params.pop('status', None)
+    return [
+        Prodict(**state.get_appstatus(c.name), **c.short_info)
+        for c in await dock.containers(struct=list, status=status)
+    ]
+
+
+@dome.expose()
+async def registrations(**params):
+    """
+    Provide global RPC registrations information
+    """
+    params = Prodict()
+    conts = await lst(status=STATUS_RUNNING)
+    methods = []
+    for c in (c for c in conts if c.methods):
+        for cm in c.methods:
+            methods.append((c.name, cm[0], cm[1]))
+    return dict(methods=methods)
 
 
 @dome.expose(name=NOTIFY_ALIVE)
 async def iamalive(name, **params):
     """
-    Accept services promotions
+    Listen for services promotions then ask their statuses.
+    It some cases takes payload to reduce calls amount
     """
-    status = await rpc.request(name, REQUEST_STATUS)
+    payload = Prodict()
+    if name == FRONTIER_SERVICE:
+        payload.update(await registrations())
+    status = await rpc.request(name, REQUEST_STATUS, **payload)
     if status:
         state.set_status(name, status)
 
@@ -24,7 +54,7 @@ async def iamalive(name, **params):
 @dome.expose(path='/show/{name}')
 async def show(name, **params):
     """
-    Show container details
+    Returns container details
     """
     return await dock.get(name)
 
@@ -32,28 +62,9 @@ async def show(name, **params):
 @dome.expose()
 async def images(**params):
     """
-    List images
+    Available images list
     """
     return await dock.imgnav.lst()
-
-
-@dome.expose()
-async def ls(**params):
-    """
-    List container and docker status
-    """
-    return list((await dock.containers()).keys())
-
-
-@dome.expose(name='list')
-async def lst(**params):
-    """
-    Containers with info
-    """
-    return [{
-        **state.get_appstatus(c.name),
-        **c.short_info
-    } for c in await dock.containers(list)]
 
 
 @dome.expose(path='/status/{name}')
@@ -92,7 +103,6 @@ async def restart(name, **params):
 @dome.expose(path='/stop/{name}')
 async def stop(name, **params):
     """
-    HTTP endpoint
     stop container
     """
     state.clear_status(name)
@@ -110,6 +120,9 @@ async def remove(name, **params):
 
 @dome.tasks.add
 async def startup():
+    """
+    Startup and heart-beat task
+    """
     for num in count():
         if num == 0:
             for c in await dock.init():
@@ -119,4 +132,7 @@ async def startup():
 
 @dome.shutdown
 async def unloader(app):
+    """
+    Graceful shutdown task
+    """
     await dock.close()
