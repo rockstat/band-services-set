@@ -13,4 +13,4 @@ COPY . .
 
 RUN mkdir -p data
 
-ENTRYPOINT [ "python", "-m", "sxgeo"]
+CMD [ "python", "-m", "sxgeo"]
