@@ -1,4 +1,4 @@
-FROM rst/band-base
+FROM rst/band-base-by
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
 
 WORKDIR /usr/src/services

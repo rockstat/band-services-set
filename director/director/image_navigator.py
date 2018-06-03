@@ -95,19 +95,15 @@ class ImageNavigator():
 
     def __init__(self, imgconfig):
         self._imgconfig = imgconfig
-        self._keys = {}
         self._images = {}
 
     def __getattr__(self, key):
         return self.__getitem__(key)
 
     def __getitem__(self, key):
-        if key in self._keys:
-            key = self._keys[key].name
         return self._images[key]
 
     async def load(self):
-        self._keys = {}
         self._images = {}
         for item in self._imgconfig:
             item = {**item}

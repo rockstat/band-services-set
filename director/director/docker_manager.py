@@ -108,11 +108,12 @@ class DockerManager():
                         if time() - last > 2:
                             logger.info("\n%s", progress)
                             last = time()
-                    elif chunk.stream:
-                        step = re.search(r'Step\s(\d+)\/(\d+)', chunk.stream)
-                        if step:
-                            logger.debug('Step %s [%s]', *step.groups())
-                        # logger.debug('%s', chunk)
+                    # elif chunk.stream:
+                    #     step = re.search(r'Step\s(\d+)\/(\d+)', chunk.stream)
+                    #     if step:
+                    #         logger.debug('Step %s [%s]', *step.groups())
+                    else:     
+                        logger.debug('%s', chunk)
                 else:
                     logger.debug('chunk: %s %s', type(chunk), chunk)
             logger.info('image created %s', struct.id)
