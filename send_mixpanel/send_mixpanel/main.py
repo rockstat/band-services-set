@@ -62,7 +62,7 @@ MP_ENDPOING = 'http://api.mixpanel.com/track/'
 
 
 @dome.expose(role=dome.LISTENER)
-async def listener(**params):
+async def broadcast(**params):
     state.add_item(params)
 
 

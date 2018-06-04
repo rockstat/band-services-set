@@ -1,10 +1,7 @@
 name: send_mixpanel
 env: {{ ENV }}
-
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
-
-
 redis_params:
   listen_all: yes
 mixpanel_token: "{{MIXPANEL_TOKEN}}"
