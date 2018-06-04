@@ -118,7 +118,7 @@ class DockerManager():
                 else:
                     logger.debug('chunk: %s %s', type(chunk), chunk)
             logger.info('image created %s', struct.id)
-            return img.set_data(await self.dc.images.get(struct.id))
+            return img.set_data(await self.dc.images.get(img.name))
 
     async def run_container(self, name, params):
         simg = self.imgnav[name]
