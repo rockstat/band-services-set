@@ -2,7 +2,7 @@
 name: pikachu
 # default paramenters
 env: {{ ENV }}
-listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
+listen: "{{HOST|default('0.0.0.0')}}:{{PORT|default(8080)}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
 # you can default you own config parameters
 myvar: myval
