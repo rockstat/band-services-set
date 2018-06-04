@@ -3,6 +3,7 @@ from collections import namedtuple
 import aiofiles
 import asyncio
 import aiodocker
+from aiodocker.exceptions import DockerError
 import os
 import stat
 import re
@@ -60,8 +61,7 @@ class DockerManager():
         return [c.short_info for c in conts.values()]
 
     async def get(self, name):
-        c = (await self.containers()).get(name, None)
-        return c and c.data
+        return (await self.containers()).get(name, None)
 
     async def available_ports(self):
         available_ports = set(range(self.start_port, self.end_port))
@@ -106,37 +106,52 @@ class DockerManager():
                         logger.debug('%s', chunk)
                     elif chunk.status and chunk.id:
                         progress[chunk.id] = chunk
-                        if time() - last > 2:
+                        if time() - last > 1:
                             logger.info("\n%s", progress)
                             last = time()
-                    # elif chunk.stream:
-                    #     step = re.search(r'Step\s(\d+)\/(\d+)', chunk.stream)
-                    #     if step:
-                    #         logger.debug('Step %s [%s]', *step.groups())
-                    else:     
+                    elif chunk.stream:
+                        logger.debug('%s', chunk)
+                        step = re.search(r'Step\s(\d+)\/(\d+)', chunk.stream)
+                        if step:
+                            logger.debug('Step %s [%s]', *step.groups())
+                    else:
                         logger.debug('%s', chunk)
                 else:
                     logger.debug('chunk: %s %s', type(chunk), chunk)
             logger.info('image created %s', struct.id)
             return img.set_data(await self.dc.images.get(img.name))
 
-    async def run_container(self, name, env = {}, **kwargs):
+    async def run_container(self, name, env={}, **kwargs):
         simg = self.imgnav[name]
         # rebuild base image
-        # if simg.base:
-            # await self.create_image(self.imgnav[simg.base])
+        if simg.base:
+            await self.create_image(self.imgnav[simg.base])
         img = await self.create_image(simg)
+        # check is running
+        try:
+            container = await self.get(name)
+            if container:
+                if container.state == 'running':
+                    logger.info("Stopping container")
+                    await container.stop()
+                logger.info("Removing container")
+                await container.delete()
+        except DockerError:
+            pass
+
+        # preparing to build
         available_ports = await self.available_ports()
         params = Prodict.from_dict({
-            'host_ports': list(available_ports.pop() for p in img.ports),
+            'host_ports':
+            list(available_ports.pop() for p in img.ports),
             **self.container_params
         })
         params.env.update(env)
         config = img.run_struct(name, img, **params)
         logger.info(f"starting container {name}.")
-        c = BandContainer(await self.dc.containers.create_or_replace(
-            name, config))
-        await c.start()
+        dc = await self.dc.containers.run(config=config, name=name)
+        c = BandContainer(dc)
+        await c.ensure_filled()
         logger.info(f'started container {c.name} [{c.short_id}] {c.ports}')
         return c.short_info
 

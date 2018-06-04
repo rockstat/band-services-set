@@ -24,9 +24,14 @@ class BandContainer():
     def print(self):
         pprint(self.d)
 
-    async def start(self):
-        await self.c.start()
-        await self.c.show()
+    # async def start(self):
+    #     await self.c.start()
+    #     await self.c.show()
+    #     self.copy()
+
+    async def ensure_filled(self):
+        if not self.d.State:
+            await self.c.show()
         self.copy()
 
     @property

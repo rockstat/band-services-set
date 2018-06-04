@@ -9,6 +9,8 @@ from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
 from . import STATUS_RUNNING, dock, state
+from .state_ctx import StateCtx
+from . import dock, state
 
 
 @dome.expose(name='list')
@@ -31,6 +33,7 @@ async def registrations(**params):
     params = Prodict()
     conts = await lst(status=STATUS_RUNNING)
     methods = []
+    # Iterating over containers and their methods
     for c in (c for c in conts if c.methods):
         for cm in c.methods:
             methods.append((c.name, cm[0], cm[1]))
@@ -38,7 +41,7 @@ async def registrations(**params):
 
 
 @dome.expose(name=NOTIFY_ALIVE)
-async def ask_status(name, **params):
+async def sync_status(name=FRONTIER_SERVICE, **params):
     """
     Listen for services promotions then ask their statuses.
     It some cases takes payload to reduce calls amount
@@ -49,6 +52,9 @@ async def ask_status(name, **params):
     status = await rpc.request(name, REQUEST_STATUS, **payload)
     if status:
         state.set_status(name, status)
+    # Pushing update to frontier
+    if name != FRONTIER_SERVICE:
+        await sync_status(FRONTIER_SERVICE)
 
 
 @dome.expose(path='/show/{name}')
@@ -56,7 +62,8 @@ async def show(name, **params):
     """
     Returns container details
     """
-    return await dock.get(name)
+    container = await dock.get(name)
+    return container and container.short_info
 
 
 @dome.expose()
@@ -97,8 +104,10 @@ async def restart(name, **params):
     """
     Restart service
     """
-    state.clear_status(name)
-    return await dock.restart_container(name)
+    async with StateCtx(name, sync_status()):
+        return await dock.restart_container(name)
+
+    # state.clear_status(name)
 
 
 @dome.expose(path='/stop/{name}')
@@ -106,8 +115,8 @@ async def stop(name, **params):
     """
     stop container
     """
-    state.clear_status(name)
-    return await dock.stop_container(name)
+    async with StateCtx(name, sync_status()):
+        return await dock.stop_container(name)
 
 
 @dome.expose(path='/rm/{name}')
@@ -115,8 +124,8 @@ async def remove(name, **params):
     """
     Unload/remove service
     """
-    state.clear_status(name)
-    return await dock.remove_container(name)
+    async with StateCtx(name, sync_status()):
+        return await dock.remove_container(name)
 
 
 @dome.tasks.add
@@ -128,13 +137,14 @@ async def startup():
         if num == 0:
             for c in await dock.init():
                 if c.name != DIRECTOR_SERVICE:
-                    await ask_status(c.name)
+                    await sync_status(c.name)
         await sleep(30)
 
 
 @dome.shutdown
-async def unloader(app):
+async def unloader():
     """
     Graceful shutdown task
     """
     await dock.close()
+    # pass

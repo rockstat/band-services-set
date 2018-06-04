@@ -39,13 +39,14 @@ class BandImage(Prodict):
             'Image': self.id,
             'Hostname': name,
             'Cmd': img.cmd,
-            'Labels': {'inband': 'user'},
+            'Labels': {
+                'inband': 'user'
+            },
             'Env': [f"{k}={v}" for k, v in env.items()],
             'StopSignal': 'SIGTERM',
             'HostConfig': {
-                'RestartPolicy': {
-                    'Name': 'unless-stopped'
-                },
+                'AutoRemove': True,
+                # 'RestartPolicy': {'Name': 'unless-stopped'},
                 'PortBindings': {
                     p: [{
                         'HostIp': bind_ip,
@@ -144,4 +145,5 @@ class ImageNavigator():
     async def lst(self):
         await self.load()
         # handle hidden images, and base without key
-        return list(i for k, i in self._images.items() if i.name == k and i.key)
+        return list(
+            i for k, i in self._images.items() if i.name == k and i.key)
