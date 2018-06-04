@@ -1,4 +1,4 @@
-name: send_mnixpanel
+name: send_mixpanel
 env: {{ ENV }}
 
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
