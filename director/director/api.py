@@ -6,7 +6,7 @@ from time import time
 import asyncio
 
 from band import settings, dome, rpc, logger, app, run_task
-from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE
+from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
 from . import STATUS_RUNNING, dock, state
 
@@ -38,7 +38,7 @@ async def registrations(**params):
 
 
 @dome.expose(name=NOTIFY_ALIVE)
-async def iamalive(name, **params):
+async def ask_status(name, **params):
     """
     Listen for services promotions then ask their statuses.
     It some cases takes payload to reduce calls amount
@@ -68,7 +68,7 @@ async def images(**params):
 
 
 @dome.expose(path='/status/{name}')
-async def ask_status(name, **params):
+async def status_call(name, **params):
     """
     Ask service status
     """
@@ -126,7 +126,8 @@ async def startup():
     for num in count():
         if num == 0:
             for c in await dock.init():
-                await iamalive(c.name)
+                if c.name != DIRECTOR_SERVICE:
+                    await ask_status(c.name)
         await sleep(30)
 
 

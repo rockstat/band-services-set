@@ -4,5 +4,4 @@ __pycache__
 .git/*
 .env
 .env.dev
-data/*
 *.egg-info/
