@@ -88,7 +88,8 @@ async def run(name, **params):
     """
     Create image and run new container with service
     """
-    return await dock.run_container(name, params)
+    logger.info('Run request with params: %s', params)
+    return await dock.run_container(name, **params)
 
 
 @dome.expose(path='/restart/{name}')

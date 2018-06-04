@@ -120,17 +120,18 @@ class DockerManager():
             logger.info('image created %s', struct.id)
             return img.set_data(await self.dc.images.get(img.name))
 
-    async def run_container(self, name, params):
+    async def run_container(self, name, env = {}, **kwargs):
         simg = self.imgnav[name]
         # rebuild base image
         # if simg.base:
             # await self.create_image(self.imgnav[simg.base])
         img = await self.create_image(simg)
         available_ports = await self.available_ports()
-        params = {
+        params = Prodict.from_dict({
             'host_ports': list(available_ports.pop() for p in img.ports),
             **self.container_params
-        }
+        })
+        params.env.update(env)
         config = img.run_struct(name, img, **params)
         logger.info(f"starting container {name}.")
         c = BandContainer(await self.dc.containers.create_or_replace(
