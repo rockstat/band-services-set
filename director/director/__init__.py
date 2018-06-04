@@ -7,5 +7,5 @@ from .constants import *
 dock = DockerManager(**settings)
 state = State()
 
-from . import api
+from . import main
 
