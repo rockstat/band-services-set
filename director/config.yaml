@@ -1,5 +1,5 @@
 name: director
-listen: "{{HOST|default('0.0.0.0')}}:{{DIRECTOR_PORT}}"
+listen: "{{HOST|default('0.0.0.0')}}:{{PORT|default(8080)}}"
 env: {{ ENV }}
 
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"

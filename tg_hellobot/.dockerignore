@@ -3,6 +3,6 @@ __pycache__
 .vscode
 .git/*
 .env
-.env.dev
+.env.local
 data/*
 *.egg-info/
