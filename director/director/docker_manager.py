@@ -103,6 +103,7 @@ class DockerManager():
                     chunk = Prodict.from_dict(chunk)
                     if chunk.aux:
                         struct.id = chunk.aux.ID
+                        logger.debug('%s', chunk)
                     elif chunk.status and chunk.id:
                         progress[chunk.id] = chunk
                         if time() - last > 2:
