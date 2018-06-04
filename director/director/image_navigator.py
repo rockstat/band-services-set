@@ -143,4 +143,5 @@ class ImageNavigator():
 
     async def lst(self):
         await self.load()
-        return list(i for k, i in self._images.items() if i.name == k)
+        # handle hidden images, and base without key
+        return list(i for k, i in self._images.items() if i.name == k and i.key)
