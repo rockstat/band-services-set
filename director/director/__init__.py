@@ -14,7 +14,7 @@ class State(Prodict):
         self.state[name].clear()
 
     def get_appstatus(self, name):
-        state = self.state[name]
+        state = self.state.get(name, None)
         if state and state.app:
             if time() - state.app_ts < 60:
                 return state.app
