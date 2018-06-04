@@ -143,4 +143,4 @@ class ImageNavigator():
 
     async def lst(self):
         await self.load()
-        return list(self._images.values())
+        return list(i for k, i in self._images.items() if i.name == k)

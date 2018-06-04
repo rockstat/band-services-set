@@ -122,8 +122,8 @@ class DockerManager():
     async def run_container(self, name, params):
         simg = self.imgnav[name]
         # rebuild base image
-        if simg.base:
-            await self.create_image(self.imgnav[simg.base])
+        # if simg.base:
+            # await self.create_image(self.imgnav[simg.base])
         img = await self.create_image(simg)
         available_ports = await self.available_ports()
         params = {
