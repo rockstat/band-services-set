@@ -16,7 +16,7 @@ from band import logger
 from .image_navigator import ImageNavigator
 from .band_container import BandContainer
 from .constants import DEF_LABELS, STATUS_RUNNING
-
+from .helpers import str2bool
 
 class DockerManager():
     """
@@ -92,11 +92,14 @@ class DockerManager():
             await conts[name].restart()
             return True
 
-    async def create_image(self, img):
-        logger.info(f"building image {img.name} from {img.path}")
+    async def create_image(self, img, img_options):
+        logger.info(
+            f">>> Building image {img.name} from {img.path}. img_options: %s",
+            img_options)
         new_id = 0
-        with img as struct:
+        async with img.create(img_options) as builder:
             progress = Prodict()
+            struct = builder.struct()
             last = time()
             async for chunk in await self.dc.images.build(**struct):
                 if isinstance(chunk, dict):
@@ -121,33 +124,38 @@ class DockerManager():
             logger.info('image created %s', struct.id)
             return img.set_data(await self.dc.images.get(img.name))
 
-    async def run_container(self, name, env={}, **kwargs):
-        simg = self.imgnav[name]
+    async def run_container(self, name, env={}, nocache=False, **kwargs):
+        img_options = dict(nocache=str2bool(nocache))
+        service_img = self.imgnav[name]
         # rebuild base image
-        if simg.base:
-            await self.create_image(self.imgnav[simg.base])
-        img = await self.create_image(simg)
-        # check is running
+        if service_img.base:
+            base_img = self.imgnav[service_img.base]
+            await self.create_image(base_img, img_options)
+        await self.create_image(service_img, img_options)
+        # removing if running
         try:
             container = await self.get(name)
             if container:
+                await container.fill()
                 if container.state == 'running':
                     logger.info("Stopping container")
                     await container.stop()
-                logger.info("Removing container")
-                await container.delete()
+                if container.d.HostConfig.AutoRemove != True or container.state != 'running':
+                    await container.delete()
+                logger.info('Wait container removed')
+                await container.wait(condition="removed")
         except DockerError:
-            pass
-
+            logger.exception('container remove exc')
+            
         # preparing to build
         available_ports = await self.available_ports()
         params = Prodict.from_dict({
             'host_ports':
-            list(available_ports.pop() for p in img.ports),
+            list(available_ports.pop() for p in service_img.ports),
             **self.container_params
         })
         params.env.update(env)
-        config = img.run_struct(name, img, **params)
+        config = service_img.run_struct(name, **params)
         logger.info(f"starting container {name}.")
         dc = await self.dc.containers.run(config=config, name=name)
         c = BandContainer(dc)

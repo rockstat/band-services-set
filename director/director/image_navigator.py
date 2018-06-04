@@ -8,6 +8,31 @@ import re
 import subprocess
 
 from .constants import DEF_LABELS
+from .helpers import tar_image_cmd
+
+
+class BandImageBuilder:
+    def __init__(self, img, img_options):
+        self.img = img
+        self.img_options = img_options
+
+    async def __aenter__(self):
+        self.p = subprocess.Popen(
+            tar_image_cmd(self.img.path), stdout=subprocess.PIPE)
+        return self
+
+    def struct(self):
+        return Prodict.from_dict({
+            'fileobj': self.p.stdout,
+            'encoding': 'identity',
+            'tag': self.img.name,
+            'nocache': self.img_options.get('nocache', False),
+            'labels': DEF_LABELS,
+            'stream': True
+        })
+
+    async def __aexit__(self, exception_type, exception_value, traceback):
+        self.p.kill()
 
 
 class BandImage(Prodict):
@@ -34,11 +59,14 @@ class BandImage(Prodict):
     def ports(self):
         return list(self.d.ContainerConfig.ExposedPorts.keys())
 
-    def run_struct(self, name, img, network, memory, bind_ip, host_ports, env):
+    def create(self, img_options):
+        return BandImageBuilder(self, img_options)
+
+    def run_struct(self, name, network, memory, bind_ip, host_ports, env):
         return Prodict.from_dict({
             'Image': self.id,
             'Hostname': name,
-            'Cmd': img.cmd,
+            'Cmd': self.cmd,
             'Labels': {
                 'inband': 'user'
             },
@@ -52,48 +80,32 @@ class BandImage(Prodict):
                         'HostIp': bind_ip,
                         'HostPort': str(hp)
                     }]
-                    for hp, p in zip(host_ports, img.ports)
+                    for hp, p in zip(host_ports, self.ports)
                 },
                 'NetworkMode': network,
                 'Memory': memory
             }
         })
 
-    def __enter__(self):
-        self.p = subprocess.Popen(
-            tar_image_cmd(self.path), stdout=subprocess.PIPE)
-        return Prodict.from_dict({
-            'fileobj': self.p.stdout,
-            'encoding': 'identity',
-            'tag': self.name,
-            'labels': DEF_LABELS,
-            'stream': True
-        })
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        self.p.kill()
 
 
-def tar_image_cmd(path):
-    return ['tar', '-C', path, '-c', '-X', '.dockerignore', '.']
+"""
+Takes list of images and collections descriptions and builds dictionary of each image ready to build.
+Config example:
+    images:
+    - name: rst/band-base
+        path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
+    - prefix: rst/band-
+        collection: true
+        base: rst/band-base
+        path: "{{IMAGES_PATH}}/band_collection"
+    - prefix: rst/user-
+        collection: true
+        path: "{{IMAGES_PATH}}/user"
+"""
 
 
 class ImageNavigator():
-    """
-    Takes list of images and collections descriptions and builds dictionary of each image ready to build.
-    Config example:
-        images:
-        - name: rst/band-base
-            path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
-        - prefix: rst/band-
-            collection: true
-            base: rst/band-base
-            path: "{{IMAGES_PATH}}/band_collection"
-        - prefix: rst/user-
-            collection: true
-            path: "{{IMAGES_PATH}}/user"
-    """
-
     def __init__(self, imgconfig):
         self._imgconfig = imgconfig
         self._images = {}

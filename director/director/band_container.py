@@ -29,6 +29,11 @@ class BandContainer():
     #     await self.c.show()
     #     self.copy()
 
+    async def fill(self):
+        await self.c.show()
+        self.copy()
+        return self
+
     async def ensure_filled(self):
         if not self.d.State:
             await self.c.show()
@@ -57,7 +62,7 @@ class BandContainer():
         if self.d.HostConfig.PortBindings:
             return list(self.d.HostConfig.PortBindings.keys())
         return []
-    
+
     @property
     def data(self):
         return self.d
