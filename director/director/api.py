@@ -8,7 +8,7 @@ import asyncio
 from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
-from . import STATUS_RUNNING, dock, state
+from .constants import STATUS_RUNNING
 from .state_ctx import StateCtx
 from . import dock, state
 
