@@ -27,13 +27,13 @@ class BandImageBuilder:
             'encoding': 'identity',
             'tag': self.img.name,
             'nocache': self.img_options.get('nocache', False),
+            'pull': self.img_options.get('pull', False),
             'labels': DEF_LABELS,
             'stream': True
         })
 
     async def __aexit__(self, exception_type, exception_value, traceback):
         self.p.kill()
-
 
 class BandImage(Prodict):
     name: str
@@ -62,7 +62,7 @@ class BandImage(Prodict):
     def create(self, img_options):
         return BandImageBuilder(self, img_options)
 
-    def run_struct(self, name, network, memory, bind_ip, host_ports, env):
+    def run_struct(self, name, network, memory, bind_ip, host_ports, auto_remove, env, **kwargs):
         return Prodict.from_dict({
             'Image': self.id,
             'Hostname': name,
@@ -73,7 +73,7 @@ class BandImage(Prodict):
             'Env': [f"{k}={v}" for k, v in env.items()],
             'StopSignal': 'SIGTERM',
             'HostConfig': {
-                'AutoRemove': True,
+                'AutoRemove': auto_remove,
                 # 'RestartPolicy': {'Name': 'unless-stopped'},
                 'PortBindings': {
                     p: [{

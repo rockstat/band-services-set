@@ -5,14 +5,15 @@ env: {{ ENV }}
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
 
 images:
-  - name: rst/band-base-by
+  - name: rst/band-base-py
     path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base_py')}}"
   - prefix: rst/band-
     collection: true
-    base: rst/band-base-by
+    base: rst/band-base-py
     path: "{{IMAGES_PATH}}/band_collection"
   - prefix: rst/user-
     collection: true
+    base: rst/band-base-py
     path: "{{IMAGES_PATH}}/user"
 
 container_params:

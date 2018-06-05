@@ -71,11 +71,20 @@ class DockerManager():
         return available_ports - used_ports
 
     async def remove_container(self, name):
-        await self.stop_container(name)
-        conts = await self.containers()
-        if name in list(conts.keys()):
-            logger.info(f"removing container {name}")
-            await conts[name].delete()
+        # removing if running
+        try:
+            container = await self.get(name)
+            if container:
+                await container.fill()
+                if container.state == 'running':
+                    logger.info("Stopping container")
+                    await container.stop()
+                if container.d.HostConfig.AutoRemove != True or container.state != 'running':
+                    await container.delete()
+                logger.info('Wait container removed')
+                await container.wait(condition="removed")
+        except DockerError:
+            logger.exception('container remove exc')
         return True
 
     async def stop_container(self, name):
@@ -93,10 +102,9 @@ class DockerManager():
             return True
 
     async def create_image(self, img, img_options):
-        logger.info(
+        logger.debug(
             f">>> Building image {img.name} from {img.path}. img_options: %s",
             img_options)
-        new_id = 0
         async with img.create(img_options) as builder:
             progress = Prodict()
             struct = builder.struct()
@@ -113,7 +121,7 @@ class DockerManager():
                             logger.info("\n%s", progress)
                             last = time()
                     elif chunk.stream:
-                        logger.debug('%s', chunk)
+                        # logger.debug('%s', chunk)
                         step = re.search(r'Step\s(\d+)\/(\d+)', chunk.stream)
                         if step:
                             logger.debug('Step %s [%s]', *step.groups())
@@ -124,29 +132,18 @@ class DockerManager():
             logger.info('image created %s', struct.id)
             return img.set_data(await self.dc.images.get(img.name))
 
-    async def run_container(self, name, env={}, nocache=False, **kwargs):
+    async def run_container(self, name, env={}, nocache='no', auto_remove='yes', **kwargs):
         img_options = dict(nocache=str2bool(nocache))
+        cont_options = dict(auto_remove=str2bool(auto_remove))
         service_img = self.imgnav[name]
         # rebuild base image
         if service_img.base:
             base_img = self.imgnav[service_img.base]
             await self.create_image(base_img, img_options)
+        #creating service image
         await self.create_image(service_img, img_options)
-        # removing if running
-        try:
-            container = await self.get(name)
-            if container:
-                await container.fill()
-                if container.state == 'running':
-                    logger.info("Stopping container")
-                    await container.stop()
-                if container.d.HostConfig.AutoRemove != True or container.state != 'running':
-                    await container.delete()
-                logger.info('Wait container removed')
-                await container.wait(condition="removed")
-        except DockerError:
-            logger.exception('container remove exc')
-            
+        
+        await self.remove_container(name)
         # preparing to build
         available_ports = await self.available_ports()
         params = Prodict.from_dict({
@@ -155,7 +152,7 @@ class DockerManager():
             **self.container_params
         })
         params.env.update(env)
-        config = service_img.run_struct(name, **params)
+        config = service_img.run_struct(name, **cont_options, **params)
         logger.info(f"starting container {name}.")
         dc = await self.dc.containers.run(config=config, name=name)
         c = BandContainer(dc)

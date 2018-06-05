@@ -34,10 +34,10 @@ async def registrations(**params):
     conts = await lst(status=STATUS_RUNNING)
     methods = []
     # Iterating over containers and their methods
-    for c in (c for c in conts if c.methods):
-        for cm in c.methods:
-            methods.append((c.name, cm[0], cm[1]))
-    return dict(methods=methods)
+    for c in (c for c in conts if c.register):
+        for cm in c.register:
+            methods.append({**{'service': c.name}, **cm})
+    return dict(register=methods)
 
 
 @dome.expose(name=NOTIFY_ALIVE)

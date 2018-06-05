@@ -9,3 +9,5 @@ state = State()
 
 from . import main
 
+__VERSION__ = '0.3.0'
+
