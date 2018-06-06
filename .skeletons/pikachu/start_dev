@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# HOLOLO
+#
+
+MOD="${PWD##*/}"
+/usr/bin/env python3 -m $MOD
+exit 0
