@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 import base64
 from time import time
-import ujson as json
+import ujson
 import urllib
 from band import dome, logger, settings, app
 from prodict import Prodict
@@ -16,16 +16,10 @@ docs:
 https://mixpanel.com/help/reference/http
 https://docs.aiohttp.org/en/stable/client.html
 
-[01:12:42] DEBUG Creating tcp connection to ('host.docker.internal', 6379)
-[01:12:42] DEBUG Connection has been closed by server, response: None
-[01:12:42] INFO redis_rpc_reader: entering loop
-[01:12:42] DEBUG Creating tcp connection to ('host.docker.internal', 6379)
-
-
 """
 
 
-def flatten_dict(dd, separator='_', prefix=''):
+def flatten_dict(dd, separator=settings.separator, prefix=''):
     return {
         prefix + separator + k if prefix else k: v
         for kk, vv in dd.items()
@@ -35,30 +29,50 @@ def flatten_dict(dd, separator='_', prefix=''):
     }
 
 
+def prefixer(dd, prefix=settings.prefix):
+    return {prefix + k: v
+            for k, v in dd.items()} if isinstance(dd, dict) else {
+                prefix: dd
+            }
+
+
+class CopyClear:
+    def __init__(self, item):
+        self.item = item
+
+    def __enter__(self):
+        return self.item[:]
+
+    def __exit__(self, exc_type, exc, tb):
+        self.item.clear()
+
+
 class State(dict):
     def __init__(self):
         self.buffer = []
 
     def add_item(self, item):
-        flat = flatten_dict(item)
-        flat.update({
-            'distinct_id': flat.get('uid', None),
+        flat_data = flatten_dict(item.pop('data', {}))
+        masked = prefixer(item)
+        flat_data.update(masked)
+        flat_data.update({
+            'distinct_id': item.get('uid', None),
             'token': settings.mixpanel_token,
             'time': round(time())
         })
-        self.buffer.append({
-            'event': flat.get('name', 'unknown'),
-            'properties': flat
-        })
+        mp_rec = {
+            'event':
+            item.get('service', 'none') + '/' + item.get('name', 'none'),
+            'properties': flat_data
+        }
+        self.buffer.append(mp_rec)
 
     def grab(self):
-        buff = self.buffer[:]
-        self.buffer.clear()
-        return buff
+        with CopyClear(self.buffer) as buff:
+            return buff
 
 
 state = State()
-MP_ENDPOING = 'http://api.mixpanel.com/track/'
 
 
 @dome.expose(role=dome.LISTENER)
@@ -74,24 +88,19 @@ async def uploader():
                 while True:
                     batch = state.grab()
                     if len(batch):
-                        enc = json.dumps(batch, ensure_ascii=False)
+                        enc = ujson.dumps(batch, ensure_ascii=False)
                         q = urllib.parse.urlencode({
                             'data':
                             base64.encodebytes(enc.encode())
                         })
-                        async with session.post(MP_ENDPOING, data=q) as resp:
+                        async with session.post(
+                                settings.endpoint, data=q) as resp:
                             logger.info('uploading %s items. Status: %s',
                                         len(batch), resp.status)
                     await asyncio.sleep(1)
             pass
+        except asyncio.CancelledError:
+            logger.info('cancelled')
+            break
         except Exception:
-            logger.exception('mp upload')
-
-
-def grouper(iterable, n, fillvalue=None):
-    """
-    Collect data into fixed-length chunks or blocks
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
-    """
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+            logger.exception('upload')
