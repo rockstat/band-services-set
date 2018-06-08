@@ -2,6 +2,8 @@ from prodict import Prodict
 from pprint import pprint
 from typing import List
 from collections import UserDict
+from .constants import STATUS_RUNNING
+
 
 
 class BCP(Prodict):
@@ -54,6 +56,10 @@ class BandContainer():
         if isinstance(self.d.State, dict):
             return self.d.State.Status
         return self.d.State
+    
+    @property
+    def running(self):
+        return self.state == STATUS_RUNNING
 
     @property
     def ports(self):

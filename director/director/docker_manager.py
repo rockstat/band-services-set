@@ -43,9 +43,9 @@ class DockerManager():
         conts = await self.containers()
         for cont in conts.values():
             logger.info(
-                f"inspecting container {cont.name}. inband: {cont.inband()}  -> port:{cont.ports}"
+                f"found container {cont.name}. inband: {cont.inband()}  -> port:{cont.ports}"
             )
-        return [cont.short_info for cont in conts.values()]
+        return [cont for cont in conts.values()]
 
     async def containers(self, struct=dict, status=None):
         filters = Prodict(label=['inband'])

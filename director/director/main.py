@@ -1,5 +1,5 @@
 from asyncio import sleep
-from collections import defaultdict
+from collections import defaultdict, deque
 from itertools import count
 from prodict import Prodict
 from time import time
@@ -133,11 +133,18 @@ async def startup():
     """
     Startup and heart-beat task
     """
+    startup = set(settings.startup)
+    started = set([DIRECTOR_SERVICE])
+
     for num in count():
         if num == 0:
+            # checking current action
             for c in await dock.init():
-                if c.name != DIRECTOR_SERVICE:
+                if c.name != DIRECTOR_SERVICE and c.running:
                     await sync_status(c.name)
+                    started.add(c.name)
+        for name in startup - started:
+            if name: await dock.run_container(name)
         await sleep(30)
 
 
