@@ -1,7 +1,6 @@
 from prodict import Prodict
 from pprint import pprint
 from typing import List
-from collections import UserDict
 from .constants import STATUS_RUNNING
 
 
@@ -25,11 +24,6 @@ class BandContainer():
 
     def print(self):
         pprint(self.d)
-
-    # async def start(self):
-    #     await self.c.start()
-    #     await self.c.show()
-    #     self.copy()
 
     async def fill(self):
         await self.c.show()
