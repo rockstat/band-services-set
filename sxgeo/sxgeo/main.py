@@ -4,7 +4,6 @@ from prodict import Prodict
 import subprocess
 import os
 
-
 state = Prodict()
 
 
@@ -20,20 +19,21 @@ async def startup():
             logger.info('download result %s', out)
             out = subprocess.call(settings.extract_cmd, shell=True)
             logger.info('extract result %s', out)
-        gl = state.geodata = GeoLocator(settings.db_file, MODE_BATCH | MODE_MEMORY)
-        logger.info('DB version %s (%s)',
-                    gl.get_db_version(), gl.get_db_date())
+        gl = state.geodata = GeoLocator(settings.db_file,
+                                        MODE_BATCH | MODE_MEMORY)
+        logger.info('DB version %s (%s)', gl.get_db_version(),
+                    gl.get_db_date())
     except Exception:
         logger.exception('download err')
 
 
-@dome.expose(role=dome.HANDLER)
-async def get(data, **params):
+@dome.expose(role=dome.ENRICHER, register=dict(key=['in.gen.track']))
+async def enrich(td = {}, **params):
     """
     Handle incoming request
     sxg lib api details: https://github.com/idlesign/pysyge
     """
     if hasattr(state, 'geodata'):
-        location = state.geodata.get_location(data['ip'], detailed=True)
+        location = state.geodata.get_location(td['ip'], detailed=True)
         return location
     return {'result': RESULT_INTERNAL_ERROR}

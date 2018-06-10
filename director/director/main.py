@@ -18,11 +18,17 @@ async def lst(**params):
     """
     Containers list with status information
     """
+    # By default return all containers
     status = params.pop('status', None)
-    return [
-        Prodict(**state.get_appstatus(c.name), **c.short_info)
-        for c in await dock.containers(struct=list, status=status)
-    ]
+    cs = await dock.containers(status=status)
+    res = []
+    for n in state.state:
+        # dock_data = n in cs and cs[n].short_info or {}
+        res.append(state.get_appstatus(n))
+    return res
+    # return [
+    #     Prodict(**state.get_appstatus(n), **()) for
+    # ]
 
 
 @dome.expose()
@@ -34,9 +40,11 @@ async def registrations(**params):
     conts = await lst(status=STATUS_RUNNING)
     methods = []
     # Iterating over containers and their methods
-    for c in (c for c in conts if c.register):
-        for cm in c.register:
-            methods.append({**{'service': c.name}, **cm})
+    for c in conts:
+        if 'register' in c:
+            for cm in c.register:
+                logger.info(cm)
+                methods.append({'service': c.name, **cm})
     return dict(register=methods)
 
 
@@ -143,9 +151,11 @@ async def startup():
                 if c.name != DIRECTOR_SERVICE and c.running:
                     await sync_status(c.name)
                     started.add(c.name)
-        for name in startup - started:
-            if name: await dock.run_container(name)
-        await sleep(30)
+            for name in startup - started:
+                if name: await dock.run_container(name)
+        # Remove expired services
+        state.check_expire()
+        await sleep(5)
 
 
 @dome.shutdown

@@ -3,6 +3,8 @@ env: {{ ENV }}
 
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
+redis_params:
+  listen_enrich: yes
 
 db_file: ./data/GeoLite2-City.mmdb
 get_cmd: wget -q -O ./data/a.zip http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz

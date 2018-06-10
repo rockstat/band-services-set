@@ -8,7 +8,6 @@ Library docs: https://github.com/maxmind/MaxMind-DB-Reader-python
 
 For better performance you cat install C version of lib
 https://github.com/maxmind/libmaxminddb
-
 """
 
 state = Prodict(db=None)
@@ -28,13 +27,13 @@ async def download_db():
         logger.exception('download err')
 
 
-@dome.expose(role=dome.HANDLER)
-async def get(data, **params):
+@dome.expose(role=dome.ENRICHER, register=dict(key=['in.gen.track']))
+async def enrich(td, **params):
     try:
         if state.db:
-            location = state.db.get(data['ip'])
+            location = state.db.get(td['ip'])
             return location
-        return {'result': RESULT_NOT_LOADED_YET}
+        return {'error': RESULT_NOT_LOADED_YET}
     except Exception:
         logger.exception('mmgeo error')
-    return {'result': RESULT_INTERNAL_ERROR}
+    return {'error': RESULT_INTERNAL_ERROR}

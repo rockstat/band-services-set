@@ -2,6 +2,6 @@
 .env.local
 /venv
 /.vscode
-/data
+/*/data
 __pycache__
 *.egg-info/
