@@ -25,7 +25,7 @@ async def lst(**params):
         res[name] = state.get_appstatus(name)
         # logger.info('-> %s ', name)
     for name, cont in cs.items():
-        res[name].update(cont.short_info) if name in res else res.update(dict(name=cont))
+        res[name].update(cont.short_info) if name in res else res.update(dict(name=cont.short_info))
         # logger.info('+> %s ', name)
     return res
 
