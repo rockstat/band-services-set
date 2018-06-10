@@ -10,7 +10,7 @@ from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, D
 
 from .constants import STATUS_RUNNING
 from .state_ctx import StateCtx
-from . import dock, state
+from . import dock, state, band_config
 
 
 @dome.expose(name='list')
@@ -19,16 +19,32 @@ async def lst(**params):
     Containers list with status information
     """
     # By default return all containers
-    status = params.pop('status', None)
-    cs = await dock.containers(status=status)
-    res = []
-    for n in state.state:
-        # dock_data = n in cs and cs[n].short_info or {}
-        res.append(state.get_appstatus(n))
+    cs = await dock.containers(status=params.pop('status', None))
+    res = {}
+    for name in state.state:
+        res[name] = state.get_appstatus(name)
+        # logger.info('-> %s ', name)
+    for name, cont in cs.items():
+        res[name].update(cont.short_info) if name in res else res.update(dict(name=cont))
+        # logger.info('+> %s ', name)
     return res
-    # return [
-    #     Prodict(**state.get_appstatus(n), **()) for
-    # ]
+
+
+@dome.expose()
+async def details(**params):
+    """
+    Detailed information for dashboard
+    """
+    params = Prodict()
+    conts = await lst(status=STATUS_RUNNING)
+    methods = []
+    # Iterating over containers and their methods
+    for c in conts:
+        if 'register' in c:
+            for cm in c.register:
+                logger.info(cm)
+                methods.append({'service': c.name, **cm})
+    return dict(register=methods)
 
 
 @dome.expose()
@@ -104,6 +120,7 @@ async def run(name, **params):
     Create image and run new container with service
     """
     logger.info('Run request with params: %s', params)
+    band_config.save_config(name, params)
     return await dock.run_container(name, **params)
 
 
