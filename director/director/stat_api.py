@@ -37,7 +37,7 @@ async def ch_query(query):
 
 
 @dome.expose()
-async def dashboard_stat(**params):
+async def web_categories(**params):
     where = ch_queries.events_where()
     query = ch_queries.groups(where)
     result = await ch_query(query + ch_queries.FMT_JSON)

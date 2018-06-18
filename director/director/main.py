@@ -23,11 +23,10 @@ async def lst(**params):
     res = {}
     for name in state.state:
         res[name] = state.get_appstatus(name)
-        # logger.info('-> %s ', name)
     for name, cont in cs.items():
-        res[name].update(cont.short_info) if name in res else res.update(dict(name=cont.short_info))
-        # logger.info('+> %s ', name)
-    return res
+        res[name].update(cont.short_info) if name in res else res.update(
+            dict(name=cont.short_info))
+    return list(res.values())
 
 
 @dome.expose()
@@ -35,16 +34,15 @@ async def details(**params):
     """
     Detailed information for dashboard
     """
-    params = Prodict()
-    conts = await lst(status=STATUS_RUNNING)
-    methods = []
     # Iterating over containers and their methods
-    for c in conts:
-        if 'register' in c:
-            for cm in c.register:
-                logger.info(cm)
-                methods.append({'service': c.name, **cm})
-    return dict(register=methods)
+    cs = await dock.containers()
+    res = {}
+    for name in state.state:
+        res[name] = state.get_appstatus(name)
+    for name, cont in cs.items():
+        res[name].update(cont.short_info) if name in res else res.update(
+            dict(name=cont.short_info))
+    return list(res.values())
 
 
 @dome.expose()
@@ -76,9 +74,6 @@ async def sync_status(name=FRONTIER_SERVICE, **params):
     status = await rpc.request(name, REQUEST_STATUS, **payload)
     if status:
         state.set_status(name, status)
-    # Pushing update to frontier
-    if name != FRONTIER_SERVICE:
-        await sync_status(FRONTIER_SERVICE)
 
 
 @dome.expose(path='/show/{name}')
@@ -164,7 +159,8 @@ async def startup():
     for num in count():
         if num == 0:
             # checking current action
-            for c in await dock.init():
+            # await dock.init()
+            for c in await dock.containers(struct=list):
                 if c.name != DIRECTOR_SERVICE and c.running:
                     await sync_status(c.name)
                     started.add(c.name)

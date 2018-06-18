@@ -36,16 +36,11 @@ class DockerManager():
         self.start_port = start_port
         self.end_port = end_port
         self.imgnav = ImageNavigator(images)
+        asyncio.ensure_future(self.imgnav.load())
         self.container_params = Prodict.from_dict(container_params)
 
     async def init(self):
         await self.imgnav.load()
-        conts = await self.containers()
-        for cont in conts.values():
-            logger.info(
-                f"found container {cont.name}. inband: {cont.inband()}  -> port:{cont.ports}"
-            )
-        return [cont for cont in conts.values()]
 
     async def containers(self, struct=dict, status=None):
         filters = Prodict(label=['inband'])
@@ -79,10 +74,13 @@ class DockerManager():
                 if container.state == 'running':
                     logger.info("Stopping container")
                     await container.stop()
-                if container.d.HostConfig.AutoRemove != True or container.state != 'running':
+                    if not container.d.HostConfig.AutoRemove:
+                        await container.delete()
+                        await container.wait(condition="removed")
+                else:
                     await container.delete()
-                logger.info('Wait container removed')
-                await container.wait(condition="removed")
+                    await container.wait(condition="removed")
+                
         except DockerError:
             logger.exception('container remove exc')
         return True
