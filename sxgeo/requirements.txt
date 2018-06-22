@@ -1,12 +1,2 @@
-# Base
-#... in band deps
-# bots
-# aiogram
-#dicts
-#geodb
 pysyge
-# maxminddb
-
-#clickhouse
-# clickhouse-driver
-# aioch
+async_lru
