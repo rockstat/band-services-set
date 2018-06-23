@@ -18,7 +18,7 @@ def crop(os=None, browser=None, device=None, **kwargs):
 
 
 @dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ua='td.ua'))
-@alru_cache(maxsize=256)
+@alru_cache(maxsize=512)
 async def enrich(ua, **params):
     """
     Detect device type using User-Agent string

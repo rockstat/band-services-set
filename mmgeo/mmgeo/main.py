@@ -46,7 +46,7 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
 
 
 @dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ip='td.ip'))
-@alru_cache(maxsize=256)
+@alru_cache(maxsize=512)
 async def enrich(ip, **params):
     try:
         if state.db:
