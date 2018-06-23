@@ -31,16 +31,16 @@ async def startup():
 def handle_location(city=None, country=None, region=None, **kwargs):
     result = Prodict()
     if country:
-        result.country_en = country['name_en']
-        result.country_ru = country['name_ru']
-        result.country_iso = country['iso']
+        result.country_en = str(country['name_en'])
+        result.country_ru = str(country['name_ru'])
+        result.country_iso = str(country['iso'])
     if city:
-        result.city_en = city['name_en']
-        result.city_ru = city['name_ru']
+        result.city_en = str(city['name_en'])
+        result.city_ru = str(city['name_ru'])
     if region:
-        result.region_en = region['name_en']
-        result.region_ru = region['name_ru']
-        result.region_iso = region['iso']
+        result.region_en = str(region['name_en'])
+        result.region_ru = str(region['name_ru'])
+        result.region_iso = str(region['iso'])
     return result
 
 
