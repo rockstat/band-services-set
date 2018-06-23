@@ -28,9 +28,9 @@ async def enrich(ua, **params):
         parsed = parse(ua)
         res = Prodict(
             os_family=parsed.os.family,
-            os_version=parsed.os.version,
+            os_version=list(v if isinstance(v, int) else 0 for v in parsed.os.version),
             browser_family=parsed.browser.family,
-            browser_version=parsed.browser.version,
+            browser_version=list(v if isinstance(v, int) else 0 for v in parsed.browser.version,),
             device_family=parsed.device.family,
             device_brand=parsed.device.brand,
             device_model=parsed.device.model)
