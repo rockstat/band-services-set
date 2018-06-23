@@ -7,7 +7,7 @@ from .band_config import BandConfig
 
 dock = DockerManager(**settings)
 state = State()
-band_config = BandConfig()
+band_config = BandConfig(**settings)
 
 from . import main
 from . import stat_api

@@ -5,8 +5,8 @@ import os
 
 
 class BandConfig:
-    def __init__(self):
-        self.dir_path = './data'
+    def __init__(self, data_dir, **kwargs):
+        self.dir_path = data_dir
         self.latest = 'latest.yml'
 
     def config_dir(self, name):
