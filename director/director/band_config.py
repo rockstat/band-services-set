@@ -39,7 +39,7 @@ class BandConfig:
 
     def load_config(self, name):
         conf = f"{self.config_dir(name)}/{self.latest}"
-        if os.path.isfile(conf):
+        if os.path.exists(conf):
             with open(conf, 'r') as f:
                 content = f.read()
                 return yaml.load(content)
