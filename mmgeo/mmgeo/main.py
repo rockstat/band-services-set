@@ -45,8 +45,9 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
     return result
 
 
+@dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ip='td.ip'))
 @alru_cache(maxsize=256)
-async def locate(ip):
+async def enrich(ip, **params):
     try:
         if state.db:
             location = state.db.get(ip)
@@ -57,21 +58,9 @@ async def locate(ip):
     return {'error': RESULT_INTERNAL_ERROR}
 
 
-@dome.expose(
-    role=dome.ENRICHER,
-    register=dict(key=['in.gen.track'], props=dict(ip='td.ip')))
-async def enrich(td, **params):
-    return await locate(td['ip'])
-
-
 @dome.expose()
 async def cache_info():
-    return locate.cache_info()
-
-
-@dome.expose()
-async def get(ip, **params):
-    return await locate(ip)
+    return enrich.cache_info()
 
 
 """

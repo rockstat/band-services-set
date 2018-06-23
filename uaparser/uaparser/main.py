@@ -17,8 +17,13 @@ def crop(os=None, browser=None, device=None, **kwargs):
     return result
 
 
+@dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ua='td.ua'))
 @alru_cache(maxsize=256)
-async def handle(ua):
+async def enrich(ua, **params):
+    """
+    Detect device type using User-Agent string
+    https://github.com/selwin/python-user-agents
+    """
     try:
         parsed = parse(ua)
         res = Prodict(
@@ -30,7 +35,7 @@ async def handle(ua):
             device_brand=parsed.device.brand,
             device_model=parsed.device.model)
         res.is_bot = int(parsed.is_bot)
-        res.is_mobile = int(parsed.is_mobile or parsed.is_tablet)
+        res.is_mob = int(parsed.is_mobile or parsed.is_tablet)
         res.is_pc = int(parsed.is_pc)
         return res
     except Exception:
@@ -38,25 +43,9 @@ async def handle(ua):
     return {'error': RESULT_INTERNAL_ERROR}
 
 
-@dome.expose(
-    role=dome.ENRICHER,
-    register=dict(key=['in.gen.track'], props=dict(ip='td.ua')))
-async def enrich(td={}, **params):
-    """
-    Detect device type using User-Agent string
-    https://github.com/selwin/python-user-agents
-    """
-    return await handle(td['ua'])
-
-
-@dome.expose(role=dome.HANDLER)
+@dome.expose()
 async def cache_info():
-    return locate.cache_info()
-
-
-@dome.expose(role=dome.HANDLER)
-async def get(ua, **kwargs):
-    return await handle(ua)
+    return enrich.cache_info()
 
 
 # @dome.tasks.add
@@ -70,8 +59,6 @@ async def get(ua, **kwargs):
 
 #     except Exception:
 #         logger.exception('startup err')
-
-
 """
 Full struct
 -----------

@@ -44,8 +44,9 @@ def handle_location(city=None, country=None, region=None, **kwargs):
     return result
 
 
+@dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ip='td.ip'))
 @alru_cache(maxsize=256)
-async def locate(ip):
+async def enrich(ip, **params):
     try:
         if hasattr(state, 'geodata'):
             location = Prodict.from_dict(
@@ -59,25 +60,9 @@ async def locate(ip):
     return {'error': RESULT_INTERNAL_ERROR}
 
 
-@dome.expose(
-    role=dome.ENRICHER,
-    register=dict(key=['in.gen.track'], props=dict(ip='td.ip')))
-async def enrich(td={}, **params):
-    """
-    Handle incoming request
-    sxg lib api details: https://github.com/idlesign/pysyge
-    """
-    return await locate(td['ip'])
-
-
 @dome.expose()
 async def cache_info():
-    return locate.cache_info()
-
-
-@dome.expose()
-async def get(ip, **kwargs):
-    return await locate(ip)
+    return enrich.cache_info()
 
 
 """

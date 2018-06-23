@@ -12,6 +12,8 @@ from .constants import STATUS_RUNNING
 from .state_ctx import StateCtx
 from . import dock, state, band_config
 
+from pprint import pprint
+
 
 @dome.expose(name='list')
 async def lst(**params):
@@ -54,11 +56,11 @@ async def registrations(**params):
     conts = await lst(status=STATUS_RUNNING)
     methods = []
     # Iterating over containers and their methods
-    for c in conts:
-        if 'register' in c:
-            for cm in c.register:
-                logger.info(cm)
-                methods.append({'service': c.name, **cm})
+    for container in conts:
+        if 'register' in container:
+            for method_reg in container.register:
+                logger.info(method_reg)
+                methods.append({'service': container.name, **method_reg})
     return dict(register=methods)
 
 

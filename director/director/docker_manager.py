@@ -76,10 +76,9 @@ class DockerManager():
                     await container.stop()
                     if not container.d.HostConfig.AutoRemove:
                         await container.delete()
-                        await container.wait(condition="removed")
                 else:
                     await container.delete()
-                    await container.wait(condition="removed")
+                await container.wait(condition="removed")
                 
         except DockerError:
             logger.exception('container remove exc')
@@ -142,6 +141,7 @@ class DockerManager():
         await self.create_image(service_img, img_options)
         
         await self.remove_container(name)
+        await asyncio.sleep(1)
         # preparing to build
         available_ports = await self.available_ports()
         params = Prodict.from_dict({
