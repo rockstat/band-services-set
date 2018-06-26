@@ -5,6 +5,7 @@ from .docker_manager import DockerManager
 from .constants import *
 from .band_config import BandConfig
 
+
 dock = DockerManager(**settings)
 state = State()
 band_config = BandConfig(**settings)

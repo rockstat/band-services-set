@@ -10,10 +10,7 @@ from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, D
 
 from .constants import STATUS_RUNNING
 from .state_ctx import StateCtx
-from . import dock, state, band_config
-
-from pprint import pprint
-
+from . import dock, state, band_config, dash
 
 @dome.expose(name='list')
 async def lst(**params):
@@ -22,22 +19,6 @@ async def lst(**params):
     """
     # By default return all containers
     cs = await dock.containers(status=params.pop('status', None))
-    res = {}
-    for name in state.state:
-        res[name] = state.get_appstatus(name)
-    for name, cont in cs.items():
-        res[name].update(cont.short_info) if name in res else res.update(
-            dict(name=cont.short_info))
-    return list(res.values())
-
-
-@dome.expose()
-async def details(**params):
-    """
-    Detailed information for dashboard
-    """
-    # Iterating over containers and their methods
-    cs = await dock.containers()
     res = {}
     for name in state.state:
         res[name] = state.get_appstatus(name)
@@ -161,6 +142,9 @@ async def startup():
     for num in count():
         if num == 0:
             # checking current action
+            for v, x, y in dash.gen():
+                print(v, x, y)
+
             # await dock.init()
             for c in await dock.containers(struct=list):
                 if c.name != DIRECTOR_SERVICE and c.running:
