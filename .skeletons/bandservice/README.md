@@ -10,8 +10,8 @@ First give a name to new service (in your mind). For example `pikachu`
 
 ### 2. Copy skeleton
 
-User images of services should be located in `my_images` directory.
-Open terminal, and make a copy of skeleton sources. Assuming you terminal session located at ~/projects. Run command:
+User images of services should be located in `my_images` directory. To distplay current location execute `pwd`
+Open terminal (file -> new terminal), and make a copy of skeleton sources. Assuming you terminal session located at ~/projects. Run command:
 
 ```bash
 cp -R sources/skeletons_ro/bandservice my_images/pikachu
@@ -53,4 +53,16 @@ Moreover you can define function as woker which load initial data or packet hanl
 
 ### Coding your service
 
-Look in `yourservice/yourservice/main.py` it template of a new services, which can be `handler` or `enricher`
+Look into `yourservice/yourservice/main.py` it template of a new services, which can be `handler` or `enricher`
+
+### Running for debug
+
+Ensure you located at your service root directory and directory contains `start_dev`. 
+> For newbies: list files using `ls`, current directory `pwd` 
+
+execute 
+```
+./run_dev
+```
+
+
