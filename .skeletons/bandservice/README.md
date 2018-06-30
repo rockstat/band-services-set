@@ -1,7 +1,5 @@
 # Band service skeleton
 
-
-
 ## Hot to start
 
 ### 1. Service name
@@ -25,7 +23,7 @@ cp -R sources/skeletons_ro/bandservice my_images/pikachu
 
 > Tip for newbie how to work with terminal. Display current location `pwd`; up to parent dir `cd ..`; output files and dirs: `ls -lh` or `ls` ; change directory `cd dirname`
 
-So you result looks should be looks like that:
+So your result should look like that:
 
 ```
 my_images
@@ -41,9 +39,9 @@ my_images
         | - main.py
 ```
 
-### Short introduction to Band services.
+### Short introduction into Band services.
 
-All of code splitting into logocal services. Service could contains number of functions, that can exposed to other services or event outside (to works) using `frontier (front service)` proxing mechanics. Each function can take one of difined roles:
+All of code splitting in logocal services. Service can contains number of functions, that can exposed to other services or event outside (to works) using `frontier (front service)` proxing mechanics. Each function can take one of difined roles:
 
 - **listener**: listener for all events matching provided key. That role uses database writers and streaming services
 - **enricher**: provides additional data chunks (enrichments) for events matched provided rules. Returened data will be attached to incoming event
