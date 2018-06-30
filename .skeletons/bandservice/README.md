@@ -1,19 +1,56 @@
+# Band service skeleton
 
 
 
 ## Hot to start
 
-### 1. Take name for your service
+### 1. Service name
 
-for example `pikachu`
+First give a name to new service (in your mind). For example `pikachu`
 
-### 2. Copy skeleton template. Folder should have name same with service
+### 2. Copy skeleton
 
-    cp -R band-py pikachu
+User images of services should be located in `my_images` directory.
+Open terminal, and make a copy of skeleton sources. Assuming you terminal session located at ~/projects. Run command:
 
-### 3. Configure service name
+```bash
+cp -R sources/skeletons_ro/bandservice my_images/pikachu
+```
 
-1. Rename `skeleton` subfolder to service name
-2. Set `name:` to your service name in config.yaml
-3. Set name in Dockerfile at the end `CMD [ "python", "-m", "pikachu"]`
+### 3. Define service name
 
+1. using IDE rename subfolder `bandservice` to your new service name
+2. Set `name:` property to your service name in `config.yaml`
+3. Set name in Dockerfile at the end `CMD [ "python", "-m", "SERVICE_NAME"]`
+
+So you result looks should be looks like that:
+
+```
+my_images
+| - pikachu
+    | - .dockerignore
+    | - config.yaml
+    | - Dockerfile
+    | - requirements.txt
+    | - start_dev
+    | - pikachu
+        | - __init__.py
+        | - __main__.py
+        | - main.py
+```
+
+### Short introduction to Band services.
+
+All of code splitting into logocal services. Service could contains number of functions, that can exposed to other services or event outside (to works) using `frontier (front service)` proxing mechanics. Each function can take one of difined roles:
+
+- **listener**: listener for all events matching provided key. That role uses database writers and streaming services
+- **enricher**: provides additional data chunks (enrichments) for events matched provided rules. Returened data will be attached to incoming event
+- **handler**: fucnctin result will be returned back to event initiator
+
+Moreover you can define function as woker which load initial data or packet hanldle incoming data
+
+- **task**: worker function
+
+### Coding your service
+
+Look in `yourservice/yourservice/main.py` it template of a new services, which can be `handler` or `enricher`
