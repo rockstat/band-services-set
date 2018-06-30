@@ -23,6 +23,8 @@ cp -R sources/skeletons_ro/bandservice my_images/pikachu
 2. Set `name:` property to your service name in `config.yaml`
 3. Set name in Dockerfile at the end `CMD [ "python", "-m", "SERVICE_NAME"]`
 
+> Tip for newbie how to work with terminal. Display current location `pwd`; up to parent dir `cd ..`; output files and dirs: `ls -lh` or `ls` ; change directory `cd dirname`
+
 So you result looks should be looks like that:
 
 ```
@@ -58,7 +60,6 @@ Look at `yourservice/yourservice/main.py`. It template of a new service, which c
 ### Running for debug
 
 Ensure you located at your service root directory and directory contains `start_dev`. 
-> For newbies: list files using `ls`, current directory `pwd` 
 
 execute 
 ```
