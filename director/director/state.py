@@ -5,13 +5,15 @@ class State:
     def __init__(self):
         self.x = 6
         self.y = 6
+        self.timeout = 30
         self.registry = Prodict()
+        self.state = dict()
         self.init_matrix()
 
     def init_matrix(self):
-        for x in range(0, self.w):
+        for x in range(0, self.x):
             self.registry[x] = dict()
-            for y in range(0, self.h):
+            for y in range(0, self.y):
                 self.registry[x][y] = None
     
     def get(self, x, y):
@@ -25,8 +27,8 @@ class State:
         pass
 
     def gen(self):
-        for x in range(0, self.w):
-            for y in range(0, self.h):
+        for x in range(0, self.x):
+            for y in range(0, self.y):
                 yield (self.registry[x][y], x, y)
 
     def set_status(self, name, app):
@@ -39,8 +41,9 @@ class State:
 
     def check_expire(self):
         for k in self.state:
-            if self.state[k] and self.state[k].app_ts:
-                if time() - self.state[k].app_ts > self.timeout:
+            container_state = self.state.get(k, None)
+            if container_state and 'app_ts' in container_state:
+                if time() - container_state['app_ts'] > self.timeout:
                     self.clear_status(k)
 
     

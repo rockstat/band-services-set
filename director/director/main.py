@@ -10,7 +10,7 @@ from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, D
 
 from .constants import STATUS_RUNNING
 from .state_ctx import StateCtx
-from . import dock, state, band_config, dash
+from . import dock, state, band_config
 
 @dome.expose(name='list')
 async def lst(**params):
@@ -141,10 +141,6 @@ async def startup():
 
     for num in count():
         if num == 0:
-            # checking current action
-            for v, x, y in dash.gen():
-                print(v, x, y)
-
             # await dock.init()
             for c in await dock.containers(struct=list):
                 if c.name != DIRECTOR_SERVICE and c.running:
