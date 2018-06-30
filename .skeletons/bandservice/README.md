@@ -53,7 +53,7 @@ Moreover you can define function as woker which load initial data or packet hanl
 
 ### Coding your service
 
-Look into `yourservice/yourservice/main.py` it template of a new services, which can be `handler` or `enricher`
+Look at `yourservice/yourservice/main.py`. It template of a new service, which can be `handler` or `enricher`
 
 ### Running for debug
 
