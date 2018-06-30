@@ -1,5 +1,5 @@
 # set name of your service
-name: pikachu
+name: bandservice
 # default paramenters
 env: {{ ENV }}
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT|default(8080)}}"
