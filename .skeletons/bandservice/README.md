@@ -61,7 +61,7 @@ Ensure you located at your service root directory and directory contains `start_
 
 execute 
 ```
-./run_dev
+./start_dev
 ```
 
 
