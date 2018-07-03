@@ -1,5 +1,6 @@
 from prodict import Prodict
 from time import time
+from band import logger
 
 class State:
     def __init__(self):
@@ -15,15 +16,12 @@ class State:
             self.registry[x] = dict()
             for y in range(0, self.y):
                 self.registry[x][y] = None
-    
+
     def get(self, x, y):
         return self.registry[x, y]
 
-    def __iter__(self):
-        return DashboardIter(self)
-
     def allocate(self):
-        # offset = 
+        # offset =
         pass
 
     def gen(self):
@@ -32,12 +30,12 @@ class State:
                 yield (self.registry[x][y], x, y)
 
     def set_status(self, name, app):
-        self.state[name] = Prodict(app=app, app_ts=time())
+        self.state[name] = dict(app=app, app_ts=time())
 
     def clear_status(self, name):
-        status = self.state.get(name, None)
-        if status:
-            status.clear()
+        container_state = self.state.get(name, None)
+        if container_state:
+            container_state.clear()
 
     def check_expire(self):
         for k in self.state:
@@ -46,11 +44,12 @@ class State:
                 if time() - container_state['app_ts'] > self.timeout:
                     self.clear_status(k)
 
-    
-    def get_appstatus(self, name):
-        status = self.state.get(name, None)
-        if status and status.app:
-            if time() - status.app_ts < self.timeout:
-                return status.app
-        return {}
 
+    def get_appstatus(self, name):
+        container_state = self.state.get(name, None)
+        if container_state and 'app' in container_state:
+            if time() - container_state['app_ts'] < self.timeout:
+                return container_state['app']
+            else:
+                logger.info("container state expired")
+        return {}
