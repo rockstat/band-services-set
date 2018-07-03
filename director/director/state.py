@@ -30,7 +30,7 @@ class State:
                 yield (self.registry[x][y], x, y)
 
     def set_status(self, name, app):
-        self.state[name] = dict(app=app, app_ts=time())
+        self.state[name] = Prodict(app=app, app_ts=time())
 
     def clear_status(self, name):
         container_state = self.state.get(name, None)
