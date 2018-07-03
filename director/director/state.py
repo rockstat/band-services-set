@@ -1,6 +1,8 @@
 from prodict import Prodict
 from time import time
 from band import logger
+import ujson
+
 
 class State:
     def __init__(self):
@@ -10,6 +12,7 @@ class State:
         self.registry = Prodict()
         self.state = dict()
         self.init_matrix()
+        self.last_key = 0
 
     def init_matrix(self):
         for x in range(0, self.x):
@@ -43,7 +46,6 @@ class State:
             if container_state and 'app_ts' in container_state:
                 if time() - container_state['app_ts'] > self.timeout:
                     self.clear_status(k)
-
 
     def get_appstatus(self, name):
         container_state = self.state.get(name, None)

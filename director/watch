@@ -1,0 +1,1 @@
+nodemon --exec /usr/bin/env python3 -m director -e 'py'

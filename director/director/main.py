@@ -4,6 +4,7 @@ from itertools import count
 from prodict import Prodict
 from time import time
 import asyncio
+import ujson
 
 from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
@@ -11,6 +12,7 @@ from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, D
 from .constants import STATUS_RUNNING
 from .state_ctx import StateCtx
 from . import dock, state, band_config
+
 
 @dome.expose(name='list')
 async def lst(**params):
@@ -33,7 +35,6 @@ async def registrations(**params):
     """
     Provide global RPC registrations information
     """
-    params = Prodict()
     conts = await lst(status=STATUS_RUNNING)
     methods = []
     # Iterating over containers and their methods
@@ -46,7 +47,7 @@ async def registrations(**params):
 
 
 @dome.expose(name=NOTIFY_ALIVE)
-async def sync_status(name=FRONTIER_SERVICE, **params):
+async def sync_status(name, **params):
     """
     Listen for services promotions then ask their statuses.
     It some cases takes payload to reduce calls amount
@@ -57,6 +58,14 @@ async def sync_status(name=FRONTIER_SERVICE, **params):
     status = await rpc.request(name, REQUEST_STATUS, **payload)
     if status:
         state.set_status(name, status)
+
+
+async def check_regs_changed():
+    key = hash(ujson.dumps(await registrations()))
+    logger.info("key: %s", key)
+    if key != state.last_key:
+        state.last_key = key
+        await sync_status(name=FRONTIER_SERVICE)
 
 
 @dome.expose(path='/show/{name}')
@@ -107,7 +116,7 @@ async def restart(name, **params):
     """
     Restart service
     """
-    async with StateCtx(name, sync_status()):
+    async with StateCtx(name, check_regs_changed()):
         return await dock.restart_container(name)
 
     # state.clear_status(name)
@@ -118,7 +127,7 @@ async def stop(name, **params):
     """
     stop container
     """
-    async with StateCtx(name, sync_status()):
+    async with StateCtx(name, check_regs_changed()):
         return await dock.stop_container(name)
 
 
@@ -127,7 +136,7 @@ async def remove(name, **params):
     """
     Unload/remove service
     """
-    async with StateCtx(name, sync_status()):
+    async with StateCtx(name, check_regs_changed()):
         return await dock.remove_container(name)
 
 
@@ -150,6 +159,7 @@ async def startup():
                 if name: await dock.run_container(name)
         # Remove expired services
         state.check_expire()
+        await check_regs_changed()
         await sleep(5)
 
 
