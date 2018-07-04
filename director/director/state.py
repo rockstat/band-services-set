@@ -35,6 +35,12 @@ class State:
     def set_status(self, name, app):
         self.state[name] = Prodict(app=app, app_ts=time())
 
+    def registraions(self):
+        """
+        Get actual registrations
+        """
+        return dict({k: self.get_appstatus(k) for k in self.state.keys()})
+
     def clear_status(self, name):
         container_state = self.state.get(name, None)
         if container_state:
@@ -48,10 +54,14 @@ class State:
                     self.clear_status(k)
 
     def get_appstatus(self, name):
+        """
+        Get status receved from application
+        """
         container_state = self.state.get(name, None)
         if container_state and 'app' in container_state:
+            # check actual/expired
             if time() - container_state['app_ts'] < self.timeout:
                 return container_state['app']
             else:
-                logger.info("container state expired")
+                self.clear_status(name)
         return {}

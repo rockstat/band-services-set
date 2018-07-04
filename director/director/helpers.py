@@ -1,11 +1,14 @@
 from inflection import underscore
 from prodict import Prodict
 
+
 def tar_image_cmd(path):
     return ['tar', '-C', path, '-c', '-X', '.dockerignore', '.']
 
+
 def str2bool(v):
-  return v.lower() in ("yes", "true", "t", "1")
+    return v.lower() in ("yes", "true", "t", "1")
+
 
 def underdict(obj):
     if isinstance(obj, dict):
@@ -18,3 +21,19 @@ def underdict(obj):
     #     return [underdict(value) for value in obj]
     else:
         return obj
+
+
+def merge(a, b, path=None):
+    "merges b into a"
+    if path is None: path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path + [str(key)])
+            elif a[key] == b[key]:
+                pass  # same leaf value
+            else:
+                raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
+        else:
+            a[key] = b[key]
+    return a

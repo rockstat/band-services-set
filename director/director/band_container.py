@@ -12,6 +12,38 @@ class BCP(Prodict):
 class BC(Prodict):
     Ports: List[BCP]
 
+class BandContainerBuilder():
+    def __init__(self, image):
+        self.image = image
+
+    def run_struct(self, name, network, memory, bind_ip, host_ports, auto_remove, etc_hosts, env, **kwargs):
+        return Prodict.from_dict({
+            'Image': self.image.id,
+            'Hostname': name,
+            'Cmd': self.image.cmd,
+            'Labels': {
+                'inband': 'user'
+            },
+            'Env': [f"{k}={v}" for k, v in env.items()],
+            'StopSignal': 'SIGTERM',
+            'HostConfig': {
+                'AutoRemove': auto_remove,
+                # 'RestartPolicy': {'Name': 'unless-stopped'},
+                'PortBindings': {
+                    p: [{
+                        'HostIp': bind_ip,
+                        'HostPort': str(hp)
+                    }]
+                    for hp, p in zip(host_ports, self.image.ports)
+                },
+                'ExtraHosts': [f"{host}:{ip}" for host, ip in etc_hosts.items()],
+                'NetworkMode': network,
+                'Memory': memory
+            }
+        })
+
+
+
 
 class BandContainer():
     def __init__(self, container):

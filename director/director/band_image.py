@@ -57,28 +57,3 @@ class BandImage(Prodict):
     def create(self, img_options):
         return BandImageBuilder(self, img_options)
 
-    def run_struct(self, name, network, memory, bind_ip, host_ports, auto_remove, env, **kwargs):
-        return Prodict.from_dict({
-            'Image': self.id,
-            'Hostname': name,
-            'Cmd': self.cmd,
-            'Labels': {
-                'inband': 'user'
-            },
-            'Env': [f"{k}={v}" for k, v in env.items()],
-            'StopSignal': 'SIGTERM',
-            'HostConfig': {
-                'AutoRemove': auto_remove,
-                # 'RestartPolicy': {'Name': 'unless-stopped'},
-                'PortBindings': {
-                    p: [{
-                        'HostIp': bind_ip,
-                        'HostPort': str(hp)
-                    }]
-                    for hp, p in zip(host_ports, self.ports)
-                },
-                'NetworkMode': network,
-                'Memory': memory
-            }
-        })
-

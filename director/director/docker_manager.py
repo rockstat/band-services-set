@@ -14,9 +14,10 @@ import subprocess
 from pprint import pprint
 from band import logger
 from .image_navigator import ImageNavigator
-from .band_container import BandContainer
+from .band_container import BandContainer, BandContainerBuilder
 from .constants import DEF_LABELS, STATUS_RUNNING
 from .helpers import str2bool
+
 
 class DockerManager():
     """
@@ -32,12 +33,19 @@ class DockerManager():
                  start_port=8900,
                  end_port=8999,
                  **kwargs):
+        # instance of low-level async docker client
         self.dc = aiodocker.Docker()
+        # pool start port
         self.start_port = start_port
+        # pool end port
         self.end_port = end_port
+        # instance of images navigator that lookups containers images 
+        # sources and build list of images ready to start
         self.imgnav = ImageNavigator(images)
-        asyncio.ensure_future(self.imgnav.load())
+        # common container params
         self.container_params = Prodict.from_dict(container_params)
+        # start load images
+        asyncio.ensure_future(self.imgnav.load())
 
     async def init(self):
         await self.imgnav.load()
@@ -79,7 +87,7 @@ class DockerManager():
                 else:
                     await container.delete()
                 await container.wait(condition="removed")
-                
+
         except DockerError:
             logger.exception('container remove exc')
         return True
@@ -129,28 +137,31 @@ class DockerManager():
             logger.info('image created %s', struct.id)
             return img.set_data(await self.dc.images.get(img.name))
 
-    async def run_container(self, name, env={}, nocache='no', auto_remove='yes', **kwargs):
-        img_options = dict(nocache=str2bool(nocache))
-        cont_options = dict(auto_remove=str2bool(auto_remove))
+    async def run_container(self,
+                            name,
+                            env={},
+                            nocache='no',
+                            auto_remove='yes',
+                            **kwargs):
+        image_options = dict(nocache=str2bool(nocache))
+        container_options = dict(auto_remove=str2bool(auto_remove))
         service_img = self.imgnav[name]
-        # rebuild base image
+        # rebuild base image if present
         if service_img.base:
             base_img = self.imgnav[service_img.base]
-            await self.create_image(base_img, img_options)
+            await self.create_image(base_img, image_options)
         #creating service image
-        await self.create_image(service_img, img_options)
-        
+        await self.create_image(service_img, image_options)
         await self.remove_container(name)
         await asyncio.sleep(1)
         # preparing to build
-        available_ports = await self.available_ports()
-        params = Prodict.from_dict({
-            'host_ports':
-            list(available_ports.pop() for p in service_img.ports),
-            **self.container_params
-        })
+        portsp = await self.available_ports()
+        ports_params = dict(
+            host_ports=list(portsp.pop() for p in service_img.ports))
+        params = Prodict.from_dict({**ports_params, **self.container_params})
         params.env.update(env)
-        config = service_img.run_struct(name, **cont_options, **params)
+        builder = BandContainerBuilder(service_img)
+        config = builder.run_struct(name, **container_options, **params)
         logger.info(f"starting container {name}.")
         dc = await self.dc.containers.run(config=config, name=name)
         c = BandContainer(dc)

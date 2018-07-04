@@ -5,11 +5,13 @@ from prodict import Prodict
 from time import time
 import asyncio
 import ujson
+import copy
 
 from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
 from .constants import STATUS_RUNNING
+from .helpers import merge
 from .state_ctx import StateCtx
 from . import dock, state, band_config
 
@@ -30,6 +32,7 @@ async def lst(**params):
     return list(res.values())
 
 
+
 @dome.expose()
 async def registrations(**params):
     """
@@ -44,6 +47,22 @@ async def registrations(**params):
                 logger.info(method_reg)
                 methods.append({'service': container.name, **method_reg})
     return dict(register=methods)
+
+
+@dome.expose()
+async def regs2(**params):
+    """
+    """
+    
+    # regs = [{'service': k, **reg} for k, reg in state.registraions().items()]
+    regs = state.registraions()
+    # # Iterating over containers and their methods
+    # for container in conts:
+    #     if 'register' in container:
+    #         for method_reg in container.register:
+    #             logger.info(method_reg)
+    #             methods.append({'service': container.name, **method_reg})
+    return dict(register=regs)
 
 
 @dome.expose(name=NOTIFY_ALIVE)
@@ -158,7 +177,6 @@ async def startup():
             for name in startup - started:
                 if name: await dock.run_container(name)
         # Remove expired services
-        state.check_expire()
         await check_regs_changed()
         await sleep(5)
 

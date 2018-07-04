@@ -18,6 +18,7 @@ images:
     base: rst/band-base-py
     path: "{{IMAGES_PATH}}/user"
 
+# following params will be paseed to image and container builder functions
 container_params:
   network: "{{NETWORK|default('custom')}}"
   memory: 367001600 # limit 350mb
@@ -26,4 +27,6 @@ container_params:
     HOST: '0.0.0.0'
     REDIS_HOST: "{{REDIS_HOST_ISOLATED}}"
     REDIS_DSN: "redis://{{REDIS_HOST_ISOLATED}}:{{REDIS_PORT|default(6379)}}"
-    
+  etc_hosts:
+    host: "{{HOST_ADDR|default('172.17.0.1')}}"
+  
