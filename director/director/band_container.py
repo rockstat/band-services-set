@@ -4,7 +4,6 @@ from typing import List
 from .constants import STATUS_RUNNING
 
 
-
 class BCP(Prodict):
     PublicPort: int
 
@@ -12,11 +11,13 @@ class BCP(Prodict):
 class BC(Prodict):
     Ports: List[BCP]
 
+
 class BandContainerBuilder():
     def __init__(self, image):
         self.image = image
 
-    def run_struct(self, name, network, memory, bind_ip, host_ports, auto_remove, etc_hosts, env, **kwargs):
+    def run_struct(self, name, network, memory, bind_ip, host_ports,
+                   auto_remove, etc_hosts, env, **kwargs):
         return Prodict.from_dict({
             'Image': self.image.id,
             'Hostname': name,
@@ -36,13 +37,12 @@ class BandContainerBuilder():
                     }]
                     for hp, p in zip(host_ports, self.image.ports)
                 },
-                'ExtraHosts': [f"{host}:{ip}" for host, ip in etc_hosts.items()],
+                'ExtraHosts':
+                [f"{host}:{ip}" for host, ip in etc_hosts.items()],
                 'NetworkMode': network,
                 'Memory': memory
             }
         })
-
-
 
 
 class BandContainer():
@@ -82,7 +82,7 @@ class BandContainer():
         if isinstance(self.d.State, dict):
             return self.d.State.Status
         return self.d.State
-    
+
     @property
     def running(self):
         return self.state == STATUS_RUNNING

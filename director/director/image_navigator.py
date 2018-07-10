@@ -1,29 +1,29 @@
+import aiofiles
+import yaml
+import stat
+import os
 from aiofiles import os as aios
 from collections import UserDict
 from prodict import Prodict
-from pprint import pprint
-import os
-import stat
 from .band_image import BandImage
 
 
-"""
-Takes list of images and collections descriptions and builds dictionary of each image ready to build.
-Config example:
-    images:
-    - name: rst/band-base
-        path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
-    - prefix: rst/band-
-        collection: true
-        base: rst/band-base
-        path: "{{IMAGES_PATH}}/band_collection"
-    - prefix: rst/user-
-        collection: true
-        path: "{{IMAGES_PATH}}/user"
-"""
-
-
 class ImageNavigator():
+    """
+    Takes list of images and collections descriptions and builds dictionary of each image ready to build.
+    Config example:
+        images:
+        - name: rst/band-base
+            path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base')}}"
+        - prefix: rst/band-
+            collection: true
+            base: rst/band-base
+            path: "{{IMAGES_PATH}}/band_collection"
+        - prefix: rst/user-
+            collection: true
+            path: "{{IMAGES_PATH}}/user"
+    """
+
     def __init__(self, imgconfig):
         self._imgconfig = imgconfig
         self._images = {}
@@ -32,7 +32,7 @@ class ImageNavigator():
         return self.__getitem__(key)
 
     def __getitem__(self, key):
-        return self._images[key]
+        return self._images.get(key, None)
 
     async def load(self):
         self._images = {}
@@ -40,33 +40,42 @@ class ImageNavigator():
             item = {**item}
             collection = item.pop('collection', None)
             if collection == True:
-                images = await self.handle_collection(**item)
-                for img in images:
-                    self.add_image(**img)
+                for img in await self.__handle_collection(**item):
+                    await self.__add_image(**img)
             else:
-                self.add_image(**item)
+                await self.__add_image(**item)
 
-    async def handle_collection(self, **kwargs):
+    async def __handle_collection(self, **kwargs):
         prefix = kwargs.pop('prefix')
         path = kwargs.pop('path')
         res = []
         for d in os.listdir(path):
-            item = await self.check_source(os.path.join(path, d))
+            item = await self.__check_source(os.path.join(path, d))
             if item:
                 p, bn = item
                 img = dict(name=prefix + bn, path=p, key=d, **kwargs)
                 res.append(img)
         return res
 
-    def add_image(self, name, path, **kwargs):
+    async def __read_meta(self, path):
+        meta_config_path = f"{path}/meta.yml"
+        if os.path.exists(meta_config_path) and os.path.isfile(
+                meta_config_path):
+            async with aiofiles.open(meta_config_path, mode='r') as f:
+                contents = await f.read()
+                return yaml.load(contents)
+        return dict()
+
+    async def __add_image(self, name, path, **kwargs):
         path = os.path.realpath(path)
+        meta = await self.__read_meta(path)
         key = kwargs.pop('key', None)
-        img = BandImage(name=name, path=path, key=key, **kwargs)
+        img = BandImage(name=name, path=path, key=key, meta=meta, **kwargs)
         self._images[name] = img
         if key:
             self._images[key] = img
 
-    async def check_source(self, path):
+    async def __check_source(self, path):
         st = await aios.stat(path)
         bn = os.path.basename(path)
         if stat.S_ISDIR(st.st_mode) and not bn.startswith('.'):

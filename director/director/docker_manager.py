@@ -39,13 +39,18 @@ class DockerManager():
         self.start_port = start_port
         # pool end port
         self.end_port = end_port
-        # instance of images navigator that lookups containers images 
+        # instance of images navigator that lookups containers images
         # sources and build list of images ready to start
         self.imgnav = ImageNavigator(images)
         # common container params
         self.container_params = Prodict.from_dict(container_params)
         # start load images
         asyncio.ensure_future(self.imgnav.load())
+
+    async def image_meta(self, name):
+        image_info = self.imgnav[name]
+        if image_info:
+            return image_info.get('meta', None)
 
     async def init(self):
         await self.imgnav.load()

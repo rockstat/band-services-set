@@ -1,5 +1,6 @@
 import subprocess
 from prodict import Prodict
+from typing import Dict
 
 from .constants import DEF_LABELS
 from .helpers import tar_image_cmd
@@ -37,6 +38,7 @@ class BandImage(Prodict):
     base: str
     p: subprocess.Popen
     d: Prodict
+    meta: Dict
 
     def set_data(self, data):
         self.d = Prodict.from_dict(data)

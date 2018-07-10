@@ -25,12 +25,19 @@ async def lst(**params):
     cs = await dock.containers(status=params.pop('status', None))
     res = {}
     for name in state.state:
-        res[name] = state.get_appstatus(name)
+        service_state = state[name]
+        res[name] = service_state.app
+        res[name]['pos'] = service_state.config.pos
+        res[name]['name'] = name
+        res[name]['title'] = service_state.title
+        res[name]['sla'] = 100
+        res[name]['mem'] = 0
+        res[name]['cpu'] = 0
+
     for name, cont in cs.items():
         res[name].update(cont.short_info) if name in res else res.update(
             dict(name=cont.short_info))
     return list(res.values())
-
 
 
 @dome.expose()
@@ -53,15 +60,7 @@ async def registrations(**params):
 async def regs2(**params):
     """
     """
-    
-    # regs = [{'service': k, **reg} for k, reg in state.registraions().items()]
     regs = state.registraions()
-    # # Iterating over containers and their methods
-    # for container in conts:
-    #     if 'register' in container:
-    #         for method_reg in container.register:
-    #             logger.info(method_reg)
-    #             methods.append({'service': container.name, **method_reg})
     return dict(register=regs)
 
 
@@ -71,17 +70,26 @@ async def sync_status(name, **params):
     Listen for services promotions then ask their statuses.
     It some cases takes payload to reduce calls amount
     """
-    payload = Prodict()
+    # Service-dependent payload send with status request
+    payload = dict()
+    # Payload for frontend servoce
     if name == FRONTIER_SERVICE:
         payload.update(await registrations())
+    # Quering status
     status = await rpc.request(name, REQUEST_STATUS, **payload)
-    if status:
-        state.set_status(name, status)
+    # Loading serice config
+    config = band_config.load_config(name)
+    # Loading image meta information
+    meta = await dock.image_meta(name)
+    # reconfiguring service state
+    service_state = state.set_state(
+        name, status=status, meta=meta, config=config)
+    # saving configuration
+    band_config.save_config(name, service_state.config)
 
 
 async def check_regs_changed():
     key = hash(ujson.dumps(await registrations()))
-    logger.info("key: %s", key)
     if key != state.last_key:
         state.last_key = key
         await sync_status(name=FRONTIER_SERVICE)
@@ -138,8 +146,6 @@ async def restart(name, **params):
     async with StateCtx(name, check_regs_changed()):
         return await dock.restart_container(name)
 
-    # state.clear_status(name)
-
 
 @dome.expose(path='/stop/{name}')
 async def stop(name, **params):
@@ -164,18 +170,11 @@ async def startup():
     """
     Startup and heart-beat task
     """
-    startup = set(settings.startup)
-    started = set([DIRECTOR_SERVICE])
-
     for num in count():
         if num == 0:
-            # await dock.init()
             for c in await dock.containers(struct=list):
-                if c.name != DIRECTOR_SERVICE and c.running:
+                if c.running:
                     await sync_status(c.name)
-                    started.add(c.name)
-            for name in startup - started:
-                if name: await dock.run_container(name)
         # Remove expired services
         await check_regs_changed()
         await sleep(5)
@@ -186,5 +185,8 @@ async def unloader():
     """
     Graceful shutdown task
     """
+    # Shutdown levelDB config
+    band_config.close()
+    # Shutdown docker client
     await dock.close()
     # pass

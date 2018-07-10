@@ -6,58 +6,88 @@ import ujson
 
 class State:
     def __init__(self):
-        self.x = 6
-        self.y = 6
+        self.maxx = 6
+        self.maxy = 6
         self.timeout = 30
-        self.registry = Prodict()
-        self.state = dict()
-        self.init_matrix()
+        self.positions = Prodict.from_dict(
+            {x: {y: None
+                 for y in self.yrange()}
+             for x in self.xrange()})
+        self._state = dict()
         self.last_key = 0
 
-    def init_matrix(self):
-        for x in range(0, self.x):
-            self.registry[x] = dict()
-            for y in range(0, self.y):
-                self.registry[x][y] = None
+    def __getattr__(self, name):
+        return self.__getitem__(name)
 
-    def get(self, x, y):
-        return self.registry[x, y]
+    def __getitem__(self, name):
+        return self._state.get(name, None)
 
-    def allocate(self):
-        # offset =
-        pass
+    @property
+    def state(self):
+        return self._state
 
-    def gen(self):
-        for x in range(0, self.x):
-            for y in range(0, self.y):
-                yield (self.registry[x][y], x, y)
+    def xrange(self, start=0):
+        return [str(x) for x in range(int(start), self.maxx)]
 
-    def set_status(self, name, app):
-        self.state[name] = Prodict(app=app, app_ts=time())
+    def yrange(self, start=0):
+        return [str(y) for y in range(int(start), self.maxy)]
+
+    def allocate(self, name, x=0, y=2):
+        x = str(x)
+        y = str(y)
+        for x, y in self.iterate(x, y):
+            if self.positions[x][y] == None:
+                self.positions[x][y] = name
+                return (x, y)
+
+    def iterate(self, x=0, y=0):
+        for yi in self.xrange(y):
+            for xi in self.yrange(x):
+                yield (
+                    xi,
+                    yi,
+                )
+
+    def set_state(self, name, status=None, config=None, meta=None):
+        # ensure container state is created
+        container_state = self._state.get(name, None)
+        if not container_state:
+            container_state = self._state[name] = Prodict(config={}, app={})
+        # allocating position for dashboars
+        if not container_state.config.pos:
+            if config and config.get('pos'):
+                x, y = config.get('pos')
+                pos = self.allocate(name, x, y)
+            elif meta and meta.get('xpos', None) and meta.get('ypos', None):
+                pos = self.allocate(name, meta.get('xpos'), meta.get('ypos'))
+            else:
+                pos = self.allocate(name)
+            container_state.config.pos = pos
+        # making title
+        if not container_state.title:
+            container_state.title = meta and meta.get('title', None) or name.title()
+        # updating status if present
+        if status:
+            container_state.app = status
+            container_state.app_ts = time()
+        return container_state
 
     def registraions(self):
         """
         Get actual registrations
         """
-        return dict({k: self.get_appstatus(k) for k in self.state.keys()})
+        return dict({k: self.get_appstatus(k) for k in self._state.keys()})
 
     def clear_status(self, name):
-        container_state = self.state.get(name, None)
+        container_state = self._state.get(name, None)
         if container_state:
             container_state.clear()
-
-    def check_expire(self):
-        for k in self.state:
-            container_state = self.state.get(k, None)
-            if container_state and 'app_ts' in container_state:
-                if time() - container_state['app_ts'] > self.timeout:
-                    self.clear_status(k)
 
     def get_appstatus(self, name):
         """
         Get status receved from application
         """
-        container_state = self.state.get(name, None)
+        container_state = self._state.get(name, None)
         if container_state and 'app' in container_state:
             # check actual/expired
             if time() - container_state['app_ts'] < self.timeout:
