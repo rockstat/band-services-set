@@ -3,11 +3,21 @@ import plyvel
 import yaml
 import time
 import os
+import aioredis
+
+from band import app, settings, redis_factory
+
+
+def pref(name):
+    return f'band-config-{name}'
 
 
 class BandConfig:
-    def __init__(self, data_dir, **kwargs):
-        self.db = plyvel.DB(f'{data_dir}/db', create_if_missing=True)
+    def __init__(self, **kwargs):
+        pass
+
+    async def startup(self, app):
+        self.redis_pool = await redis_factory.create_pool()
 
     def encode(self, **data):
         return ujson.dumps(data, ensure_ascii=False).encode()
@@ -16,13 +26,20 @@ class BandConfig:
         if data:
             return ujson.loads(data.decode())
 
-    def save_config(self, name, params):
+    async def save_config(self, name, params):
         raw = self.encode(**params, created_at=time.asctime())
-        self.db.put(name.encode(), raw)
+        with await self.redis_pool as conn:
+            await conn.execute('set', pref(name), raw)
 
-    def load_config(self, name):
-        raw = self.db.get(name.encode())
+    async def load_config(self, name):
+        with await self.redis_pool as conn:
+            raw = await conn.execute('get', pref(name))
         return self.decode(raw)
 
-    def unload(self):
-        self.db.close()
+    async def unload(self, app):
+        await redis_factory.close_pool(self.redis_pool)
+
+
+band_config = BandConfig(**settings)
+app.on_startup.append(band_config.startup)
+app.on_shutdown.append(band_config.unload)

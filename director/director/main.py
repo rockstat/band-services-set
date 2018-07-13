@@ -51,7 +51,6 @@ async def registrations(**params):
     for container in conts:
         if 'register' in container:
             for method_reg in container.register:
-                logger.info(method_reg)
                 methods.append({'service': container.name, **method_reg})
     return dict(register=methods)
 
@@ -78,14 +77,14 @@ async def sync_status(name, **params):
     # Quering status
     status = await rpc.request(name, REQUEST_STATUS, **payload)
     # Loading serice config
-    config = band_config.load_config(name)
+    config = await band_config.load_config(name)
     # Loading image meta information
     meta = await dock.image_meta(name)
     # reconfiguring service state
     service_state = state.set_state(
         name, status=status, meta=meta, config=config)
     # saving configuration
-    band_config.save_config(name, service_state.config)
+    await band_config.save_config(name, service_state.config)
 
 
 async def check_regs_changed():
@@ -134,7 +133,7 @@ async def run(name, **params):
     Create image and run new container with service
     """
     logger.info('Run request with params: %s', params)
-    band_config.save_config(name, params)
+    await band_config.save_config(name, params)
     return await dock.run_container(name, **params)
 
 
@@ -185,8 +184,6 @@ async def unloader():
     """
     Graceful shutdown task
     """
-    # Shutdown levelDB config
-    band_config.close()
     # Shutdown docker client
     await dock.close()
     # pass
