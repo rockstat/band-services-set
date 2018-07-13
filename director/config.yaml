@@ -12,11 +12,14 @@ images:
   - prefix: rst/band-
     collection: true
     base: rst/band-base-py
-    path: "{{IMAGES_PATH}}/band_collection"
+    path: "{{IMAGES_PATH}}/band_set"
   - prefix: rst/user-
     collection: true
     base: rst/band-base-py
     path: "{{IMAGES_PATH}}/user"
+  - prefix: rst/rockme-
+    collection: true
+    path: "{{IMAGES_PATH}}/rockme_set"
 
 # following params will be paseed to image and container builder functions
 container_params:

@@ -78,8 +78,9 @@ class ImageNavigator():
     async def __check_source(self, path):
         st = await aios.stat(path)
         bn = os.path.basename(path)
-        if stat.S_ISDIR(st.st_mode) and not bn.startswith('.'):
-            return (path, bn)
+        if stat.S_ISDIR(st.st_mode):
+            if not bn.startswith('___') and not bn.startswith('.'):
+                return (path, bn)
 
     async def lst(self):
         await self.load()
