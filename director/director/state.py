@@ -55,18 +55,18 @@ class ServiceState(Prodict):
             env=self._env, pos=self._pos, build_options=self._build_options)
 
     def state(self):
-        data = (self.app or {}).copy()
-        data.update(
-            dict(
-                methods=self.methods,
-                name=self.name,
-                title=self.title,
-                pos=self.pos,
-                sla=randint(98, 99),
-                mem=randint(1, 3),
-                cpu=randint(1, 3),
-            ))
-        return data
+        uptime = self.app and self.app.app_uptime
+        state = self.app and self.app.app_state
+        return dict(
+            name=self.name,
+            uptime=uptime,
+            state=state,
+            title=self.title,
+            pos=self.pos,
+            sla=randint(98, 99),
+            mem=randint(1, 3),
+            cpu=randint(1, 3),
+        )
 
     @property
     def pos(self):
