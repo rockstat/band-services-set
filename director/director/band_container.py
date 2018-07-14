@@ -67,6 +67,10 @@ class BandContainer():
             await self.c.show()
         self.copy()
 
+    def auto_removable(self):
+        print('autoremove:', self.d.HostConfig.AutoRemove)
+        return self.d.HostConfig.AutoRemove
+
     @property
     def name(self):
         if self.d.Names:

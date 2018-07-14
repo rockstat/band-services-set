@@ -2,9 +2,10 @@ name: director
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT|default(8080)}}"
 env: "{{ENV}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
-startup: []
 ch_dsn: "{{CH_DSN|default('http://default:default@host:9090')}}"
 data_dir: "{{DATA_DIR|default('/data')}}"
+# initial
+default_services: ['mmgeo', 'sxgeo', 'uaparser']
 
 images:
   - name: rst/band-base-py

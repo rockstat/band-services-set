@@ -1,6 +1,13 @@
 from inflection import underscore
 from prodict import Prodict
 
+def nn(arg):
+    """ not nil """
+    return arg != None
+
+def isn(arg):
+    """ not nil """
+    return arg == None
 
 def tar_image_cmd(path):
     return ['tar', '-C', path, '-c', '-X', '.dockerignore', '.']

@@ -38,7 +38,7 @@ class BandImage(Prodict):
     base: str
     p: subprocess.Popen
     d: Prodict
-    meta: Dict
+    meta: Prodict
 
     def set_data(self, data):
         self.d = Prodict.from_dict(data)

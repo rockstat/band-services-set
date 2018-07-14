@@ -47,6 +47,9 @@ class DockerManager():
         # start load images
         asyncio.ensure_future(self.imgnav.load())
 
+    def is_band_image(self, name):
+        return name in self.imgnav
+
     async def image_meta(self, name):
         image_info = self.imgnav[name]
         if image_info:
@@ -87,11 +90,17 @@ class DockerManager():
                 if container.state == 'running':
                     logger.info("Stopping container")
                     await container.stop()
-                    if not container.d.HostConfig.AutoRemove:
+                    if not container.auto_removable():
                         await container.delete()
                 else:
                     await container.delete()
-                await container.wait(condition="removed")
+
+                try:
+                    await container.wait(condition="removed")
+                except DockerError as e:
+                    logger.debug('Docker 404 received on wait request')
+                    if e.status != 404:
+                        raise e
 
         except DockerError:
             logger.exception('container remove exc')
@@ -142,14 +151,11 @@ class DockerManager():
             logger.info('image created %s', struct.id)
             return img.set_data(await self.dc.images.get(img.name))
 
-    async def run_container(self,
-                            name,
-                            env={},
-                            nocache='no',
-                            auto_remove='yes',
-                            **kwargs):
-        image_options = dict(nocache=str2bool(nocache))
-        container_options = dict(auto_remove=str2bool(auto_remove))
+    async def run_container(self, name, env={}, nocache=False, auto_remove=True, **kwargs):
+
+        image_options = dict(nocache=nocache)
+        container_options = dict(auto_remove=auto_remove)
+        
         service_img = self.imgnav[name]
         # rebuild base image if present
         if service_img.base:

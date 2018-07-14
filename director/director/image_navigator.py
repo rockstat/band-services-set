@@ -34,6 +34,9 @@ class ImageNavigator():
     def __getitem__(self, key):
         return self._images.get(key, None)
 
+    def __contains__(self, key):
+        return key in self._images
+
     async def load(self):
         self._images = {}
         for item in self._imgconfig:
@@ -59,12 +62,13 @@ class ImageNavigator():
 
     async def __read_meta(self, path):
         meta_config_path = f"{path}/meta.yml"
+        meta = Prodict()
         if os.path.exists(meta_config_path) and os.path.isfile(
                 meta_config_path):
             async with aiofiles.open(meta_config_path, mode='r') as f:
                 contents = await f.read()
-                return yaml.load(contents)
-        return dict()
+                meta.update(yaml.load(contents))
+        return meta
 
     async def __add_image(self, name, path, **kwargs):
         path = os.path.realpath(path)

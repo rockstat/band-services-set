@@ -4,3 +4,5 @@ SYSTEM_CONTAINERS = [
     'frontier'
 ]
 DEF_LABELS = {'inband': 'inband'}
+STARTED = 'started'
+DUMMY_REC = '__soother__'

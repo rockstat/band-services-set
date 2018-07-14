@@ -46,26 +46,3 @@ async def web_categories(**params):
         groups = {k: list(g) for k, g in groupby(result, lambda x: x['group'])}
         return groups
 
-
-# @dome.tasks.add
-# async def worker():
-#     for num in count():
-#         try:
-#             # first iteration / initialization
-#             if num == 0:
-#                 # Load initial data
-#                 await dash_stat()
-#                 pass
-#             else:
-#                 # Control your data
-#                 pass
-#         except Exception:
-#             logger.exception('my service ex')
-#         # Wait between iteration
-#         await asyncio.sleep(30)
-
-
-# @dome.shutdown
-# async def shutdown():
-#     # Handle graceful shutdown
-#     pass
