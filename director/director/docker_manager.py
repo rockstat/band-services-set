@@ -63,7 +63,7 @@ class DockerManager():
 
     async def get(self, name):
         try:
-            container = await self.dc.get(name)
+            container = await self.dc.containers.get(name)
             if container:
                 return BandContainer(container)
         except DockerError as e:
