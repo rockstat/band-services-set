@@ -123,7 +123,7 @@ async def run(name, **kwargs):
     """
     Create image and run new container with service
     """
-    if not dock.is_band_image(name):
+    if not image_navigator.is_native(name):
         return 404
 
     srv = await state.get(name)
@@ -224,7 +224,7 @@ async def startup():
             Starting missing services
             """
             for item in await state.should_start():
-                if item not in state:
+                if not (item in state and (await state.get(item)).is_active()):
                     asyncio.ensure_future(run(item))
         # Remove expired services
         await sleep(5)

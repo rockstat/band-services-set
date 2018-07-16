@@ -37,7 +37,7 @@ class ImageNavigator():
     def __contains__(self, key):
         return key in self._images
 
-    def is_band_image(self, name):
+    def is_native(self, name):
         return name in self._images
 
     async def load(self):
