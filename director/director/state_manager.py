@@ -5,7 +5,7 @@ import ujson
 from pprint import pprint
 from collections import defaultdict
 
-from band import settings
+from band import settings, rpc
 from .band_config import BandConfig
 from .docker_manager import DockerManager
 from .constants import STARTED, SERVICE_TIMEOUT, DEFAULT_COL, DEFAULT_ROW
@@ -29,6 +29,7 @@ class StateManager:
     async def initialize(self):
         await band_config.initialize()
         await image_navigator.load()
+        await self.load_docker_status()
         # check state exists
         started_present = await band_config.set_exists(STARTED)
         if not started_present:
@@ -65,6 +66,13 @@ class StateManager:
 
         return self._state[name]
 
+    async def load_docker_status(self):
+        for container in await dock.containers(struct=list):
+            srv = await self.get(container.name)
+            await container.fill()
+            srv.set_dockstate(container.full_state())
+
+                
     def values(self):
         return self._state.values()
 
@@ -91,7 +99,7 @@ class StateManager:
 
     def _space_walk(self, scol=0, srow=0):
         """
-        Yields all possible positions
+        Yields all possible positions for dashboard
         """
         srow = int(srow)
         scol = int(scol)
@@ -113,7 +121,7 @@ class StateManager:
     async def configs(self):
         return await band_config.configs_list()
 
-    async def should_started(self):
+    async def should_start(self):
         return await band_config.set_get(STARTED)
 
     async def set_started(self, name):
@@ -124,6 +132,6 @@ class StateManager:
 
     async def unload(self):
         await band_config.unload()
-
+    
     def clean_ctx(self, name, coro):
         return StateCtx(self, name, coro)

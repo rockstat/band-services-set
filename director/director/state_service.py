@@ -2,7 +2,7 @@ from prodict import Prodict
 from typing import List, Dict
 from time import time
 from random import randint
-from .constants import SERVICE_TIMEOUT
+from .constants import SERVICE_TIMEOUT, STATUS_RUNNING
 from .helpers import nn, isn
 
 
@@ -58,13 +58,28 @@ class ServiceState(Prodict):
     def config(self):
         return dict(pos=self.pos, build_options=self._build_options)
 
-    def state(self):
-        uptime = self._app and self._app.app_uptime
-        state = self._app and self._app.app_state
+    def full_state(self):
+        ds = self.dockstate
+        ass = self.appstate
+        state = None
+        running = None
+        uptime = None
+        if ds:
+            running = ds.running
+            state = ds.state
+            if ass and ass.app_uptime:
+                uptime = ass.app_uptime
+            else:
+                uptime = ds.uptime
+        elif ass and ass.app_state == STATUS_RUNNING:
+            running = True
+            state = STATUS_RUNNING
+            uptime = ass.app_uptime        
         return dict(
             name=self.name,
             uptime=uptime,
             state=state,
+            running=running,
             title=self.title,
             pos=self.pos,
             sla=randint(98, 99),
@@ -92,10 +107,15 @@ class ServiceState(Prodict):
         return self._title
 
     def is_active(self):
-        if self._app_ts:
-            if time() < self._app_ts + SERVICE_TIMEOUT:
+        ds = self.dockstate
+        if ds and ds.state == STATUS_RUNNING:
+            return True
+        else:
+            ass = self.appstate
+            if ass and ass.app_state == STATUS_RUNNING:
                 return True
         return False
+    
 
     def set_build_opts(self, **kwargs):
         if 'env' in kwargs:
@@ -115,6 +135,11 @@ class ServiceState(Prodict):
             if 'title' in meta:
                 self.set_title(meta.title)
 
+    @property
+    def appstate(self):
+        if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:    
+            return self._app
+
     def set_appstate(self, appstate):
         if appstate:
             self._app = appstate
@@ -125,8 +150,14 @@ class ServiceState(Prodict):
                     rec = method.copy()
                     rec.update(service=self._name)
                     self._methods.append(rec)
+    @property
+    def dockstate(self):
+        if self._dock_ts and time() < self._dock_ts + SERVICE_TIMEOUT:    
+            return self._dock
+
 
     def set_dockstate(self, dockstate):
         if dockstate:
             self._dock = dockstate
-            self._dock_ts = time()
+            if dockstate.running == True:
+                self._dock_ts = time()

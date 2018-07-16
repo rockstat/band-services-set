@@ -48,7 +48,7 @@ class DockerManager():
         self.container_params = Prodict.from_dict(container_params)
         # start load images
     
-    async def containers(self, struct=dict, status=None):
+    async def containers(self, struct=dict, status=None, fullinfo=False):
         filters = Prodict(label=['inband'])
         if status:
             filters.status = [status]
@@ -62,7 +62,14 @@ class DockerManager():
         return [c.short_info for c in conts.values()]
 
     async def get(self, name):
-        return (await self.containers()).get(name, None)
+        try:
+            container = await self.dc.get(name)
+            if container:
+                return BandContainer(container)
+        except DockerError as e:
+            logger.warn("Fetched exception %s: %s", e.status, e.message)
+
+        # return (await self.containers()).get(name, None)
 
     async def available_ports(self):
         available_ports = set(range(self.start_port, self.end_port))

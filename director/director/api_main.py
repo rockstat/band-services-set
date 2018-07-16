@@ -32,7 +32,7 @@ async def lst(**params):
     res = {}
     for srv in state.state.values():
         # if srv.is_active():
-        res[srv.name] = srv.state()
+        res[srv.name] = srv.full_state()
     cs = await dock.containers(status=params.pop('status', None))
     for name, cont in cs.items():
         res[name].update(cont.short_info) if name in res else res.update(
@@ -152,7 +152,7 @@ async def rebuild_all(**kwargs):
     """
     Rebuild all controlled containers
     """
-    for name in state.should_started():
+    for name in state.should_start():
         await run(name)
     return 200
 
@@ -223,10 +223,8 @@ async def startup():
             """
             # starting config
             await state.initialize()
-            # Inspecting docker containers
+            # looking for containers to request status
             for container in await dock.containers(struct=list):
-                srv = await state.get(container.name)
-                srv.set_dockstate(container.short_info)
                 if container.running and container.native:
                     asyncio.ensure_future(sync_status(container.name))
 
@@ -234,11 +232,12 @@ async def startup():
             """
             Starting missing services
             """
-            for item in await state.should_started():
+            for item in await state.should_start():
                 if item not in state:
                     asyncio.ensure_future(run(item))
         # Remove expired services
         await sleep(5)
+        await state.load_docker_status()
         await check_regs_changed()
 
 

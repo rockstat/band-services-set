@@ -2,6 +2,7 @@ from prodict import Prodict
 from pprint import pprint
 from typing import List
 from .constants import STATUS_RUNNING
+import arrow
 
 class BCP(Prodict):
     PublicPort: int
@@ -86,6 +87,23 @@ class BandContainer():
             return self.d.State.Status
         return self.d.State
 
+    def full_state(self):
+        started_at = self.started_at
+        uptime = None
+        if started_at:
+            started_at = arrow.get(started_at)
+            now = arrow.now()
+            uptime = (now - started_at).seconds * 1000
+            started_at = started_at.timestamp * 1000
+
+        return Prodict(
+            running=self.running,
+            started_at=started_at,
+            created=self.created,
+            uptime=uptime,
+            state=self.state
+        )
+
     @property
     def running(self):
         return self.state == STATUS_RUNNING
@@ -98,6 +116,21 @@ class BandContainer():
             return list(self.d.HostConfig.PortBindings.keys())
         return []
 
+    @property
+    def started_at(self):
+        if isinstance(self.d.State, dict):
+            if self.d.State.Running == True:
+                return arrow.get(self.d.State.StartedAt)
+        
+    @property
+    def created(self):
+        if self.d.Created:
+            created = self.d.Created
+            if isinstance(created, int):
+                return created
+            elif isinstance(created, str):
+                return arrow.get(created).timestamp * 1000
+        
     @property
     def data(self):
         return self.d
