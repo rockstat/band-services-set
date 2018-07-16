@@ -7,16 +7,29 @@ import aioredis
 from prodict import Prodict
 from band import app, settings, redis_factory, logger
 
+SERVICE_PREFIX = 'band-config-'
+SET_PREFIX = 'band-set-'
+
+
 def pconf(name):
-    return f'band-config-{name}'
+    return f'{SERVICE_PREFIX}{name}'
+
+
+def upconf(name):
+    if name.startswith(SERVICE_PREFIX):
+        return name[len(SERVICE_PREFIX):]
 
 
 def pset(name):
-    return f'band-set-{name}'
+    return f'{SET_PREFIX}{name}'
+
+
+def decode(name):
+    return name.decode()
 
 
 class BandConfig:
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass
 
     async def initialize(self):
@@ -44,8 +57,13 @@ class BandConfig:
         await self.__redis_cmd('srem', pset(key), *args)
 
     async def set_get(self, key):
-        return set(item.decode()
-                   for item in await self.__redis_cmd('smembers', pset(key)))
+        return set(map(decode, await self.__redis_cmd('smembers', pset(key))))
+
+    async def configs_list(self):
+        return list(
+            map(upconf,
+                map(decode, await self.__redis_cmd('keys',
+                                                   f'{SERVICE_PREFIX}*'))))
 
     async def save_config(self, name, params):
         raw = self.encode(**params)

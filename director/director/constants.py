@@ -5,4 +5,6 @@ SYSTEM_CONTAINERS = [
 ]
 DEF_LABELS = {'inband': 'inband'}
 STARTED = 'started'
-DUMMY_REC = '__soother__'
+SERVICE_TIMEOUT = 30
+DEFAULT_COL = 0
+DEFAULT_ROW = 2

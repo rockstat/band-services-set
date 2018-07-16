@@ -3,7 +3,6 @@ from pprint import pprint
 from typing import List
 from .constants import STATUS_RUNNING
 
-
 class BCP(Prodict):
     PublicPort: int
 
@@ -23,7 +22,7 @@ class BandContainerBuilder():
             'Hostname': name,
             'Cmd': self.image.cmd,
             'Labels': {
-                'inband': 'user'
+                'inband': 'native'
             },
             'Env': [f"{k}={v}" for k, v in env.items()],
             'StopSignal': 'SIGTERM',
@@ -108,11 +107,14 @@ class BandContainer():
             return self.d.Labels
         elif self.d.Config and self.d.Config.Labels:
             return self.d.Config.Labels
-        return {}
+        return Prodict()
 
     def inband(self):
-        lbs = self.labels()
-        return lbs and bool(lbs.inband)
+        return bool(self.labels().inband)
+
+    @property
+    def native(self):
+        return self.labels().inband == 'native'
 
     @property
     def short_info(self):

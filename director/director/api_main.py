@@ -10,10 +10,16 @@ import copy
 from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
-from .constants import STATUS_RUNNING, DUMMY_REC, STARTED
+from .constants import STATUS_RUNNING, STARTED
 from .helpers import merge, str2bool
-from .state_ctx import StateCtx
-from . import dock, state, band_config
+from . import dock, state, image_navigator
+
+from pprint import pprint
+
+
+@dome.expose()
+async def get_state():
+    return list(state.state.keys())
 
 
 @dome.expose(name='list')
@@ -22,11 +28,11 @@ async def lst(**params):
     Containers list with status information
     """
     # By default return all containers
-    
+
     res = {}
-    for srv in state.values():
-        if srv.app:
-            res[srv.name] = srv.state()
+    for srv in state.state.values():
+        # if srv.is_active():
+        res[srv.name] = srv.state()
     cs = await dock.containers(status=params.pop('status', None))
     for name, cont in cs.items():
         res[name].update(cont.short_info) if name in res else res.update(
@@ -41,9 +47,10 @@ async def registrations(**params):
     """
     methods = []
     # Iterating over containers and their methods
-    for srv in state.state.values():
-        for method in srv.methods:
-            methods.append(method)
+    for srv in state.values():
+        if srv.is_active():
+            for method in srv.methods:
+                methods.append(method)
     return dict(register=methods)
 
 
@@ -60,12 +67,13 @@ async def sync_status(name, **params):
         payload.update(await registrations())
     # Loading state, config, meta
     status = await rpc.request(name, REQUEST_STATUS, **payload)
-    config = await band_config.load_config(name)
-    meta = await dock.image_meta(name)
+    srv = await state.get(name)
+    srv.set_appstate(status)
+
     # reconfiguring service state
-    srv = state.update(name, status=status, meta=meta, config=config)
+    # srv = state.update(name, status=status, meta=meta)
     # saving configuration
-    await band_config.save_config(name, srv.config)
+    # await band_config.save_config(name, srv.config)
 
 
 async def check_regs_changed():
@@ -88,11 +96,19 @@ async def show(name, **params):
 
 
 @dome.expose()
-async def images(**params):
+async def list_images(**params):
     """
     Available images list
     """
-    return await dock.imgnav.lst()
+    return await image_navigator.lst()
+
+
+@dome.expose()
+async def list_configs(**params):
+    """
+    Available images list
+    """
+    return await state.configs()
 
 
 @dome.expose(path='/status/{name}')
@@ -119,14 +135,15 @@ async def run(name, **kwargs):
     if not dock.is_band_image(name):
         return 404
 
-    srv = state[name]
+    srv = await state.get(name)
     srv.set_build_opts(**kwargs)
 
-    logger.info('request with params: %s. Using config: %s', kwargs, srv.config)
+    logger.info('request with params: %s. Using config: %s', kwargs,
+                srv.config)
     container = await dock.run_container(name, **srv.config)
     # save params and state only if successfully starter
-    await band_config.save_config(name, srv.config)
-    await band_config.set_add(STARTED, name)
+    # await band_config.save_config(name, srv.config)
+    await state.set_started(name)
     return container
 
 
@@ -135,7 +152,7 @@ async def rebuild_all(**kwargs):
     """
     Rebuild all controlled containers
     """
-    for name in await band_config.set_get(STARTED):
+    for name in state.should_started():
         await run(name)
     return 200
 
@@ -150,7 +167,7 @@ async def restart(name, **params):
     if not container:
         return 404
     # executing main action
-    async with StateCtx(name, check_regs_changed()):
+    async with state.clean_ctx(name, check_regs_changed()):
         return await dock.restart_container(name)
 
 
@@ -167,7 +184,7 @@ async def stop(name, **params):
     if not container.auto_removable():
         return 400
     # executing main action
-    async with StateCtx(name, check_regs_changed()):
+    async with state.clean_ctx(name, check_regs_changed()):
         return await dock.stop_container(name)
 
 
@@ -181,9 +198,9 @@ async def remove(name, **params):
     if not container:
         return 404
 
-    async with StateCtx(name, check_regs_changed()):
+    async with state.clean_ctx(name, check_regs_changed()):
         # removing from control list
-        await band_config.set_rm(STARTED, name)
+        await state.rm(name)
         # executing remove
         return await dock.remove_container(name)
 
@@ -205,20 +222,19 @@ async def startup():
             Onstart tasks: loaders, readers, etc...
             """
             # starting config
-            await band_config.initialize()
+            await state.initialize()
             # Inspecting docker containers
-            for c in await dock.containers(struct=list):
-                if c.running:
-                    await sync_status(c.name)
-            # check state exists
-            started_present = await band_config.set_exists(STARTED)
-            if not started_present:
-                await band_config.set_add(STARTED, *settings.default_services)
+            for container in await dock.containers(struct=list):
+                srv = await state.get(container.name)
+                srv.set_dockstate(container.short_info)
+                if container.running and container.native:
+                    asyncio.ensure_future(sync_status(container.name))
+
         if num == 1:
             """
             Starting missing services
             """
-            for item in await band_config.set_get(STARTED):
+            for item in await state.should_started():
                 if item not in state:
                     asyncio.ensure_future(run(item))
         # Remove expired services
@@ -232,7 +248,7 @@ async def unloader():
     Graceful shutdown task
     """
     # Closing configs holder
-    await band_config.unload()
+    await state.unload()
     # Shutdown docker client
     await dock.close()
     # pass

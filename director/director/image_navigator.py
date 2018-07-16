@@ -24,8 +24,8 @@ class ImageNavigator():
             path: "{{IMAGES_PATH}}/user"
     """
 
-    def __init__(self, imgconfig):
-        self._imgconfig = imgconfig
+    def __init__(self, images, *args, **kwargs):
+        self._imgconfig = images
         self._images = {}
 
     def __getattr__(self, key):
@@ -37,6 +37,9 @@ class ImageNavigator():
     def __contains__(self, key):
         return key in self._images
 
+    def is_band_image(self, name):
+        return name in self._images
+
     async def load(self):
         self._images = {}
         for item in self._imgconfig:
@@ -47,6 +50,11 @@ class ImageNavigator():
                     await self.__add_image(**img)
             else:
                 await self.__add_image(**item)
+
+
+    async def image_meta(self, name):
+        if name in self._images:
+            return self[name].get('meta', None)
 
     async def __handle_collection(self, **kwargs):
         prefix = kwargs.pop('prefix')

@@ -18,7 +18,6 @@ from .band_container import BandContainer, BandContainerBuilder
 from .constants import DEF_LABELS, STATUS_RUNNING
 from .helpers import str2bool
 
-
 class DockerManager():
     """
     Useful links:
@@ -30,41 +29,32 @@ class DockerManager():
     def __init__(self,
                  images,
                  container_params,
+                 image_navigator,
                  start_port=8900,
                  end_port=8999,
                  **kwargs):
         # instance of low-level async docker client
         self.dc = aiodocker.Docker()
+        # containers images navigator
+        self.image_navigator = image_navigator
         # pool start port
         self.start_port = start_port
         # pool end port
         self.end_port = end_port
         # instance of images navigator that lookups containers images
         # sources and build list of images ready to start
-        self.imgnav = ImageNavigator(images)
+        
         # common container params
         self.container_params = Prodict.from_dict(container_params)
         # start load images
-        asyncio.ensure_future(self.imgnav.load())
-
-    def is_band_image(self, name):
-        return name in self.imgnav
-
-    async def image_meta(self, name):
-        image_info = self.imgnav[name]
-        if image_info:
-            return image_info.get('meta', None)
-
-    async def init(self):
-        await self.imgnav.load()
-
+    
     async def containers(self, struct=dict, status=None):
         filters = Prodict(label=['inband'])
         if status:
             filters.status = [status]
         conts = await self.dc.containers.list(
             all=True, filters=ujson.dumps(filters))
-        lst = list(bc for bc in [BandContainer(c) for c in conts])
+        lst = list(BandContainer(c) for c in conts)
         return lst if struct == list else {c.name: c for c in lst}
 
     async def conts_list(self):
@@ -156,10 +146,10 @@ class DockerManager():
         image_options = dict(nocache=nocache)
         container_options = dict(auto_remove=auto_remove)
         
-        service_img = self.imgnav[name]
+        service_img = self.image_navigator[name]
         # rebuild base image if present
         if service_img.base:
-            base_img = self.imgnav[service_img.base]
+            base_img = self.image_navigator[service_img.base]
             await self.create_image(base_img, image_options)
         #creating service image
         await self.create_image(service_img, image_options)
