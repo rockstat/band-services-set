@@ -2,6 +2,7 @@ from prodict import Prodict
 from band import logger
 from .helpers import nn, isn, str2bool
 import ujson
+import asyncio
 from pprint import pprint
 from collections import defaultdict
 
@@ -16,6 +17,7 @@ from .image_navigator import ImageNavigator
 image_navigator = ImageNavigator(**settings)
 band_config = BandConfig(**settings)
 dock = DockerManager(image_navigator=image_navigator, **settings)
+
 
 class StateManager:
     def __init__(self):
@@ -63,7 +65,7 @@ class StateManager:
             pos_base = self._allocate(name, **pos_base)
             srv.set_pos(**pos_base)
             self._state[name] = srv
-
+        
         return self._state[name]
 
     async def load_docker_status(self):
@@ -72,7 +74,9 @@ class StateManager:
             await container.fill()
             srv.set_dockstate(container.full_state())
 
-                
+    def save_config(self, name, config):
+        asyncio.ensure_future(band_config.save_config(name, config))
+
     def values(self):
         return self._state.values()
 
@@ -132,6 +136,6 @@ class StateManager:
 
     async def unload(self):
         await band_config.unload()
-    
+
     def clean_ctx(self, name, coro):
         return StateCtx(self, name, coro)

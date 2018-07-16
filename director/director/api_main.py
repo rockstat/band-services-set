@@ -27,17 +27,8 @@ async def lst(**params):
     """
     Containers list with status information
     """
-    # By default return all containers
-
-    res = {}
-    for srv in state.state.values():
-        # if srv.is_active():
-        res[srv.name] = srv.full_state()
-    cs = await dock.containers(status=params.pop('status', None))
-    for name, cont in cs.items():
-        res[name].update(cont.short_info) if name in res else res.update(
-            dict(name=cont.short_info))
-    return list(res.values())
+    return list(
+        [fs for fs in [s.full_state() for s in state.values()] if fs.state])
 
 
 @dome.expose()

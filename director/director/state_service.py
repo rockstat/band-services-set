@@ -56,7 +56,7 @@ class ServiceState(Prodict):
 
     @property
     def config(self):
-        return dict(pos=self.pos, build_options=self._build_options)
+        return dict(pos=self.pos, build_options=self.build_options)
 
     def full_state(self):
         ds = self.dockstate
@@ -75,7 +75,7 @@ class ServiceState(Prodict):
             running = True
             state = STATUS_RUNNING
             uptime = ass.app_uptime        
-        return dict(
+        return Prodict(
             name=self.name,
             uptime=uptime,
             state=state,
@@ -116,6 +116,9 @@ class ServiceState(Prodict):
                 return True
         return False
     
+    @property
+    def build_options(self):
+        return self._build_options
 
     def set_build_opts(self, **kwargs):
         if 'env' in kwargs:
@@ -135,6 +138,9 @@ class ServiceState(Prodict):
             if 'title' in meta:
                 self.set_title(meta.title)
 
+    def save_config(self):
+        self._manager.save_config(self.name, self.config)
+
     @property
     def appstate(self):
         if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:    
@@ -144,11 +150,12 @@ class ServiceState(Prodict):
         if appstate:
             self._app = appstate
             self._app_ts = time()
+            self.save_config()
             if 'register' in appstate:
                 self._methods = []
                 for method in appstate['register']:
                     rec = method.copy()
-                    rec.update(service=self._name)
+                    rec.update(service=self.name)
                     self._methods.append(rec)
     @property
     def dockstate(self):
@@ -160,4 +167,5 @@ class ServiceState(Prodict):
         if dockstate:
             self._dock = dockstate
             if dockstate.running == True:
+                self.save_config()
                 self._dock_ts = time()
