@@ -24,7 +24,7 @@ async def download_db():
             out = subprocess.call(settings.extract_cmd, shell=True)
             logger.info('extract result %s', out)
         state.db = maxminddb.open_database(settings.db_file)
-        ready = True
+        state.ready = True
     except Exception:
         logger.exception('download err')
 
