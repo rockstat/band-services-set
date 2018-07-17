@@ -11,7 +11,7 @@ For better performance you cat install C version of lib
 https://github.com/maxmind/libmaxminddb
 """
 
-state = Prodict(db=None)
+state = Prodict(db=None, ready=False)
 
 
 @dome.tasks.add
@@ -24,6 +24,7 @@ async def download_db():
             out = subprocess.call(settings.extract_cmd, shell=True)
             logger.info('extract result %s', out)
         state.db = maxminddb.open_database(settings.db_file)
+        ready = True
     except Exception:
         logger.exception('download err')
 
@@ -49,9 +50,10 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
 @alru_cache(maxsize=512)
 async def enrich(ip, **params):
     try:
-        if state.db:
+        if state.ready and state.db:
             location = state.db.get(ip)
-            return handle_location(**location)
+            if location:
+                return handle_location(**location)
         return {'error': RESULT_NOT_LOADED_YET}
     except Exception:
         logger.exception('mmgeo error')

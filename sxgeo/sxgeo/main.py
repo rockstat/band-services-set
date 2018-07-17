@@ -5,7 +5,7 @@ import subprocess
 import os
 from async_lru import alru_cache
 
-state = Prodict()
+state = Prodict(geodata=None, ready=False)
 
 
 @dome.tasks.add
@@ -22,6 +22,7 @@ async def startup():
             logger.info('extract result %s', out)
         gl = state.geodata = GeoLocator(settings.db_file,
                                         MODE_BATCH | MODE_MEMORY)
+        state.ready = True
         logger.info('DB version %s (%s)', gl.get_db_version(),
                     gl.get_db_date())
     except Exception:
@@ -47,17 +48,18 @@ def handle_location(city=None, country=None, region=None, **kwargs):
 @dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ip='td.ip'))
 @alru_cache(maxsize=512)
 async def enrich(ip, **params):
-    try:
-        if hasattr(state, 'geodata'):
-            location = Prodict.from_dict(
-                state.geodata.get_location(ip, detailed=True))
-            if not location or not location.info:
+    if state.ready:
+        try:
+            if hasattr(state, 'geodata'):
+                location = Prodict.from_dict(
+                    state.geodata.get_location(ip, detailed=True))
+                if location and location.info:
+                    return handle_location(**location.info)
                 return {}
-            return handle_location(**location.info)
-        return {'result': RESULT_INTERNAL_ERROR}
-    except Exception:
-        logger.exception('mmgeo error')
-    return {'error': RESULT_INTERNAL_ERROR}
+            return {'result': RESULT_INTERNAL_ERROR}
+        except Exception:
+            logger.exception('mmgeo error')
+        return {'error': RESULT_INTERNAL_ERROR}
 
 
 @dome.expose()
