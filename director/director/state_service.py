@@ -3,7 +3,7 @@ from typing import List, Dict
 from time import time
 from random import randint
 from .constants import SERVICE_TIMEOUT, STATUS_RUNNING
-from .helpers import nn, isn
+from .helpers import nn, isn, str2bool
 
 
 class MethodRegistration(Prodict):
@@ -56,7 +56,7 @@ class ServiceState(Prodict):
 
     @property
     def config(self):
-        return dict(pos=self.pos, build_options=self.build_options)
+        return Prodict(pos=self.pos, build_options=self.build_options)
 
     def full_state(self):
         ds = self.dockstate
@@ -122,11 +122,11 @@ class ServiceState(Prodict):
 
     def set_build_opts(self, **kwargs):
         if 'env' in kwargs:
-            self._build_options.env = kwargs['env']
+            self._build_options.update(env=kwargs['env'])
         if 'nocache' in kwargs:
-            self._build_options.nocache = str2bool(kwargs['nocache'])
+            self._build_options.update(nocache=str2bool(kwargs['nocache']))
         if 'auto_remove' in kwargs:
-            self._build_options.auto_remove = str2bool(kwargs['auto_remove'])
+            self._build_options.update(auto_remove=str2bool(kwargs['auto_remove']))
 
     def set_pos(self, col, row):
         if nn(col) and nn(row):

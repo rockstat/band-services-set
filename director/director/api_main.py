@@ -131,7 +131,7 @@ async def run(name, **kwargs):
 
     logger.info('request with params: %s. Using config: %s', kwargs,
                 srv.config)
-    container = await dock.run_container(name, **srv.config)
+    container = await dock.run_container(name, **srv.config.build_options)
     # save params and state only if successfully starter
     # await band_config.save_config(name, srv.config)
     await state.set_started(name)
@@ -143,7 +143,7 @@ async def rebuild_all(**kwargs):
     """
     Rebuild all controlled containers
     """
-    for name in state.should_start():
+    for name in await state.should_start():
         await run(name)
     return 200
 

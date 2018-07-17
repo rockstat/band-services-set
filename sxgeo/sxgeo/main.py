@@ -4,6 +4,7 @@ from prodict import Prodict
 import subprocess
 import os
 from async_lru import alru_cache
+from aiohttp.web_exceptions import HTTPInternalServerError, HTTPNoContent
 
 state = Prodict(geodata=None, ready=False)
 
@@ -55,7 +56,8 @@ async def enrich(ip, **params):
                 return handle_location(**Prodict.from_dict(location.info))
         except Exception:
             logger.exception('mmgeo error')
-        return {'error': RESULT_INTERNAL_ERROR}
+            raise HTTPInternalServerError(
+                reason='Error while quering database')
     return {}
 
 
