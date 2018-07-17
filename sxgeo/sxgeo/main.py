@@ -50,16 +50,13 @@ def handle_location(city=None, country=None, region=None, **kwargs):
 async def enrich(ip, **params):
     if state.ready:
         try:
-            if hasattr(state, 'geodata'):
-                location = Prodict.from_dict(
-                    state.geodata.get_location(ip, detailed=True))
-                if location and location.info:
-                    return handle_location(**location.info)
-                return {}
-            return {'result': RESULT_INTERNAL_ERROR}
+            location = state.geodata.get_location(ip, detailed=True)
+            if location and 'info' in location:
+                return handle_location(**Prodict.from_dict(location.info))
         except Exception:
             logger.exception('mmgeo error')
         return {'error': RESULT_INTERNAL_ERROR}
+    return {}
 
 
 @dome.expose()
