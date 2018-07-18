@@ -25,7 +25,7 @@ async def get_state(name=None, prop=None):
     if name:
         if name in state:
             srv = await state.get(name)
-            if prop:
+            if prop and hasattr(srv, prop):
                 return getattr(srv, prop)
             return srv.full_state()
     return list(state.state.keys())
