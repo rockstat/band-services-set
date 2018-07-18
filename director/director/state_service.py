@@ -4,6 +4,7 @@ from time import time
 from random import randint
 from .constants import SERVICE_TIMEOUT, STATUS_RUNNING
 from .helpers import nn, isn, str2bool
+from band import logger
 
 
 class MethodRegistration(Prodict):
@@ -48,6 +49,7 @@ class ServiceState(Prodict):
         self._title = name.replace('_', ' ').title()
 
     def clean_status(self):
+        logger.debug('cleaning state of %s', self.name)
         self._app = Prodict()
         self._app_ts = None
         self._dock = Prodict()
@@ -59,22 +61,23 @@ class ServiceState(Prodict):
         return Prodict(pos=self.pos, build_options=self.build_options)
 
     def full_state(self):
-        ds = self.dockstate
-        ass = self.appstate
+        docker = self.dockstate
+        appdata = self.appstate
+        print(appdata)
         state = None
         running = None
         uptime = None
-        if ds:
-            running = ds.running
-            state = ds.state
-            if ass and ass.app_uptime:
-                uptime = ass.app_uptime
+        if docker:
+            running = docker.running
+            state = docker.state
+            if appdata and appdata.app_uptime:
+                uptime = appdata.app_uptime
             else:
-                uptime = ds.uptime
-        elif ass and ass.app_state == STATUS_RUNNING:
+                uptime = docker.uptime
+        elif appdata and appdata.app_state == STATUS_RUNNING:
             running = True
             state = STATUS_RUNNING
-            uptime = ass.app_uptime        
+            uptime = appdata.app_uptime
         return Prodict(
             name=self.name,
             uptime=uptime,
@@ -115,7 +118,7 @@ class ServiceState(Prodict):
             if ass and ass.app_state == STATUS_RUNNING:
                 return True
         return False
-    
+
     @property
     def build_options(self):
         return self._build_options
@@ -126,7 +129,8 @@ class ServiceState(Prodict):
         if 'nocache' in kwargs:
             self._build_options.update(nocache=str2bool(kwargs['nocache']))
         if 'auto_remove' in kwargs:
-            self._build_options.update(auto_remove=str2bool(kwargs['auto_remove']))
+            self._build_options.update(
+                auto_remove=str2bool(kwargs['auto_remove']))
 
     def set_pos(self, col, row):
         if nn(col) and nn(row):
@@ -143,25 +147,31 @@ class ServiceState(Prodict):
 
     @property
     def appstate(self):
-        if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:    
+        print(self.name, self._app_ts, time(), time() - SERVICE_TIMEOUT)
+        if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:
             return self._app
+
+    def set_methods(self, methods):
+        if not methods: return
+        self._methods = []
+        for method in methods:
+            rec = method.copy()
+            rec.update(service=self.name)
+            self._methods.append(rec)
 
     def set_appstate(self, appstate):
         if appstate:
+            logger.debug('set app state %s', self.name)
             self._app = appstate
             self._app_ts = time()
             self.save_config()
             if 'register' in appstate:
-                self._methods = []
-                for method in appstate['register']:
-                    rec = method.copy()
-                    rec.update(service=self.name)
-                    self._methods.append(rec)
+                self.set_methods(appstate['register'])
+
     @property
     def dockstate(self):
-        if self._dock_ts and time() < self._dock_ts + SERVICE_TIMEOUT:    
+        if self._dock_ts and time() < self._dock_ts + SERVICE_TIMEOUT:
             return self._dock
-
 
     def set_dockstate(self, dockstate):
         if dockstate:

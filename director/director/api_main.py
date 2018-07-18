@@ -17,13 +17,17 @@ from . import dock, state, image_navigator
 from pprint import pprint
 
 
-@dome.expose(path='/state/{name}')
-async def get_state(name=None):
-    return name in state and (await state.get(name)).full_state()
-
-
-@dome.expose(path='/state_list')
-async def get_state_list():
+@dome.expose(path='/state')
+async def get_state(name=None, prop=None):
+    """
+    Get list of services in state or get state of specified service
+    """
+    if name:
+        if name in state:
+            srv = await state.get(name)
+            if prop:
+                return getattr(srv, prop)
+            return srv.full_state()
     return list(state.state.keys())
 
 
@@ -98,7 +102,7 @@ async def list_images(**params):
 @dome.expose()
 async def list_configs(**params):
     """
-    Available images list
+    List of saved services configurations
     """
     return await state.configs()
 
