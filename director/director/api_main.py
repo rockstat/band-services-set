@@ -21,6 +21,7 @@ from pprint import pprint
 async def get_state(name=None, prop=None):
     """
     Get list of services in state or get state of specified service
+    Method for debug purposes
     """
     if name:
         if name in state:
@@ -44,6 +45,7 @@ async def lst(**params):
 async def registrations(**params):
     """
     Provide global RPC registrations information
+    Method for debug purposes
     """
     methods = []
     # Iterating over containers and their methods
@@ -61,16 +63,18 @@ async def sync_status(name, **params):
     It some cases takes payload to reduce calls amount
     """
     # Service-dependent payload send with status request
-    payload = dict()
-
-    # Loading state, config, meta
-    status = await rpc.request(name, REQUEST_STATUS, **payload)
     srv = await state.get(name)
-    srv.set_appstate(status)
+    payload = dict()
     # Payload for frontend servoce
     if name == FRONTIER_SERVICE:
         payload.update(await registrations())
 
+    # Loading state, config, meta
+    status = await rpc.request(name, REQUEST_STATUS, **payload)
+    
+    srv.set_appstate(status)
+    
+    
 
 async def check_regs_changed():
     key = hash(ujson.dumps(await registrations()))

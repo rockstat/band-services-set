@@ -63,7 +63,6 @@ class ServiceState(Prodict):
     def full_state(self):
         docker = self.dockstate
         appdata = self.appstate
-        print(appdata)
         state = None
         running = None
         uptime = None
@@ -147,7 +146,6 @@ class ServiceState(Prodict):
 
     @property
     def appstate(self):
-        print(self.name, self._app_ts, time(), time() - SERVICE_TIMEOUT)
         if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:
             return self._app
 
@@ -161,7 +159,6 @@ class ServiceState(Prodict):
 
     def set_appstate(self, appstate):
         if appstate:
-            logger.debug('set app state %s', self.name)
             self._app = appstate
             self._app_ts = time()
             self.save_config()
