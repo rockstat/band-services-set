@@ -19,8 +19,11 @@ from pprint import pprint
 
 @dome.expose(path='/state/{name}')
 async def get_state(name=None):
-    if name:
-        return name in state and (await state.get(name)).full_state()
+    return name in state and (await state.get(name)).full_state()
+
+
+@dome.expose(path='/state_list/{name}')
+async def get_state_list(name=None):
     return list(state.state.keys())
 
 
@@ -63,7 +66,6 @@ async def sync_status(name, **params):
     # Payload for frontend servoce
     if name == FRONTIER_SERVICE:
         payload.update(await registrations())
-
 
 
 async def check_regs_changed():
