@@ -53,18 +53,15 @@ async def sync_status(name, **params):
     """
     # Service-dependent payload send with status request
     payload = dict()
-    # Payload for frontend servoce
-    if name == FRONTIER_SERVICE:
-        payload.update(await registrations())
+
     # Loading state, config, meta
     status = await rpc.request(name, REQUEST_STATUS, **payload)
     srv = await state.get(name)
     srv.set_appstate(status)
+    # Payload for frontend servoce
+    if name == FRONTIER_SERVICE:
+        payload.update(await registrations())
 
-    # reconfiguring service state
-    # srv = state.update(name, status=status, meta=meta)
-    # saving configuration
-    # await band_config.save_config(name, srv.config)
 
 
 async def check_regs_changed():

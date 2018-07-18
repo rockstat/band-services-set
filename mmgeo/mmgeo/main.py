@@ -4,6 +4,7 @@ import maxminddb
 from band import dome, logger, settings, RESULT_INTERNAL_ERROR, RESULT_NOT_LOADED_YET
 from prodict import Prodict
 from async_lru import alru_cache
+from aiohttp.web_exceptions import HTTPServiceUnavailable
 """
 Library docs: https://github.com/maxmind/MaxMind-DB-Reader-python
 
@@ -11,7 +12,11 @@ For better performance you cat install C version of lib
 https://github.com/maxmind/libmaxminddb
 """
 
-state = Prodict(db=None, ready=False)
+class MMGState(Prodict):
+    db: object
+    ready: bool
+
+state = MMGState(db=None, ready=False)
 
 
 @dome.tasks.add
@@ -50,11 +55,12 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
 @alru_cache(maxsize=512)
 async def enrich(ip, **params):
     try:
-        if state.ready and state.db:
+        if state.ready == True and state.db:
             location = state.db.get(ip)
             if location:
                 return handle_location(**location)
-        return {'error': RESULT_NOT_LOADED_YET}
+            return {}
+        raise HTTPServiceUnavailable('Database not ready yet')
     except Exception:
         logger.exception('mmgeo error')
     return {'error': RESULT_INTERNAL_ERROR}
