@@ -22,8 +22,8 @@ async def get_state(name=None):
     return name in state and (await state.get(name)).full_state()
 
 
-@dome.expose(path='/state_list/{name}')
-async def get_state_list(name=None):
+@dome.expose(path='/state_list')
+async def get_state_list():
     return list(state.state.keys())
 
 
