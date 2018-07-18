@@ -17,8 +17,10 @@ from . import dock, state, image_navigator
 from pprint import pprint
 
 
-@dome.expose()
-async def get_state():
+@dome.expose(path='/state/{name}')
+async def get_state(name=None):
+    if name:
+        return name in state and (await state.get(name)).full_state()
     return list(state.state.keys())
 
 
