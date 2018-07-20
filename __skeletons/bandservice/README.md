@@ -64,4 +64,25 @@ execute
 ./start_dev
 ```
 
+more logs 
 
+```
+ ❯❯❯ export LOG_LEVEL=debug
+ ❯❯❯ ./start_dev
+```
+
+logs for humans
+
+```
+~/p/m/first_api ❯❯❯ export HUMANIZE_LOGS=1
+~/p/m/first_api ❯❯❯ ./start_dev
+2018-07-18 18:14:39 INFO pid: 895
+2018-07-18 18:14:39 INFO cwd:/home/theia/project/my_images/first_api
+2018-07-18 18:14:39 INFO settings: {'name': 'first_api', 'env': 'development', 'listen': '0.0.0.0:8080', 'redis_dsn': 'redis://redis:6379', 'ch_dsn':'http://default:default@host:9090/stats', 'myvar': 'myval'}
+```
+
+
+### Troubles and solutions
+
+What's wrong with Theia.
+Try to reboot container. To do that using in-place just type `kill 1` in integrated terminal

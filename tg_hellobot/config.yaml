@@ -4,3 +4,4 @@ env: {{ ENV }}
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
 
+token: {{ TOKEN }}
