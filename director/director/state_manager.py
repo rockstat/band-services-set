@@ -31,7 +31,7 @@ class StateManager:
     async def initialize(self):
         await band_config.initialize()
         await image_navigator.load()
-        await self.load_docker_status()
+        await self.resolve_docstatus_all()
         # check state exists
         started_present = await band_config.set_exists(STARTED)
         if not started_present:
@@ -68,11 +68,16 @@ class StateManager:
         
         return self._state[name]
 
-    async def load_docker_status(self):
-        for container in await dock.containers(struct=list):
-            srv = await self.get(container.name)
-            await container.fill()
+    async def resolve_docstatus(self, name):
+        srv = await self.get(name)
+        container = await dock.get(name)
+        if container:
             srv.set_dockstate(container.full_state())
+        
+
+    async def resolve_docstatus_all(self):
+        for container in await dock.containers(struct=list):
+            await self.resolve_docstatus(container.name)
 
     def save_config(self, name, config):
         asyncio.ensure_future(band_config.save_config(name, config))
@@ -81,9 +86,12 @@ class StateManager:
         return self._state.values()
 
     def _occupied(self, exclude=None):
+        """
+        Building list of occupied positions
+        """
         occupied = []
         for srv in self._state.values():
-            if srv.name != exclude and nn(srv.pos.col and nn(srv.pos.row)):
+            if srv.name != exclude and nn(srv.pos.col) and nn(srv.pos.row):
                 occupied.append(srv.pos.to_s())
         return occupied
 
@@ -91,27 +99,26 @@ class StateManager:
         """
         Allocating dashboard position for container close to wanted
         """
-        print('allocating pos', name, col, row)
-
+        logger.debug(f'{name} pos: wanted {col}x{row}')
         occupied = self._occupied(exclude=name)
-
-        print('occupied', occupied)
+        logger.debug(f'occupied positions: {occupied}')
         for icol, irow in self._space_walk(int(col), int(row)):
+            logger.debug(f'> checking {icol}x{irow}')
             key = f"{icol}x{irow}"
             if key not in occupied:
                 return dict(col=icol, row=irow)
 
     def _space_walk(self, scol=0, srow=0):
         """
-        Yields all possible positions for dashboard
+        Generator over all pissible postions starting from specified location
         """
         srow = int(srow)
         scol = int(scol)
-        # First part
+        # first part
         for rowi in range(srow, self.rows):
             for coli in range(scol, self.cols):
                 yield coli, rowi
-        # second part
+        # back side
         for rowi in range(0, srow):
             for coli in range(0, scol):
                 yield coli, rowi
@@ -128,7 +135,7 @@ class StateManager:
     async def should_start(self):
         return await band_config.set_get(STARTED)
 
-    async def set_started(self, name):
+    async def add_to_startup(self, name):
         await band_config.set_add(STARTED, name)
 
     async def rm(self, name):

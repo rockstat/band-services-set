@@ -140,11 +140,11 @@ async def run(name, **kwargs):
 
     logger.info('request with params: %s. Using config: %s', kwargs,
                 srv.config)
-    container = await dock.run_container(name, **srv.config.build_options)
+    await dock.run_container(name, **srv.config.build_options)
     # save params and state only if successfully starter
-    # await band_config.save_config(name, srv.config)
-    await state.set_started(name)
-    return container
+    await state.add_to_startup(name)
+    await state.resolve_docstatus(name)
+    return srv.full_state()
 
 
 @dome.expose()
@@ -237,7 +237,7 @@ async def startup():
                     asyncio.ensure_future(run(item))
         # Remove expired services
         await sleep(5)
-        await state.load_docker_status()
+        await state.resolve_docstatus_all()
         await check_regs_changed()
 
 

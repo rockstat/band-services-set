@@ -4,6 +4,7 @@ from typing import List
 from .constants import STATUS_RUNNING
 import arrow
 
+
 class BCP(Prodict):
     PublicPort: int
 
@@ -91,18 +92,17 @@ class BandContainer():
         started_at = self.started_at
         uptime = None
         if started_at:
-            started_at = arrow.get(started_at)
-            now = arrow.now()
-            uptime = (now - started_at).seconds * 1000
-            started_at = started_at.timestamp * 1000
+            start_ts = started_at.timestamp
+            now_ts = arrow.now().timestamp
+            uptime_sec = now_ts - start_ts 
+            uptime_sec = uptime_sec if uptime_sec > 0 else 0
 
         return Prodict(
             running=self.running,
-            started_at=started_at,
-            created=self.created,
-            uptime=uptime,
-            state=self.state
-        )
+            started_at=start_ts * 1000,
+            created=self.create_ts,
+            uptime=uptime_sec * 1000,
+            state=self.state)
 
     @property
     def running(self):
@@ -121,16 +121,16 @@ class BandContainer():
         if isinstance(self.d.State, dict):
             if self.d.State.Running == True:
                 return arrow.get(self.d.State.StartedAt)
-        
+
     @property
-    def created(self):
+    def create_ts(self):
         if self.d.Created:
             created = self.d.Created
             if isinstance(created, int):
                 return created
             elif isinstance(created, str):
                 return arrow.get(created).timestamp * 1000
-        
+
     @property
     def data(self):
         return self.d
