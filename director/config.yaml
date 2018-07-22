@@ -29,8 +29,7 @@ container_params:
   bind_ip: "{{BIND_HOST_IP}}"
   env:
     HOST: '0.0.0.0'
-    REDIS_HOST: "{{REDIS_HOST_ISOLATED}}"
-    REDIS_DSN: "redis://{{REDIS_HOST_ISOLATED}}:{{REDIS_PORT|default(6379)}}"
+    REDIS_DSN: "{{REDIS_DSN|default('redis://redis:6379')}}"
   etc_hosts:
     host: "{{HOST_ADDR|default('172.17.0.1')}}"
   
