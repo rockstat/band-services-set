@@ -53,7 +53,7 @@ async def enrich(ip, **params):
         try:
             location = state.geodata.get_location(ip, detailed=True)
             if location and 'info' in location:
-                return handle_location(**Prodict.from_dict(location.info))
+                return handle_location(**Prodict.from_dict(location['info']))
         except Exception:
             logger.exception('mmgeo error')
             raise HTTPInternalServerError(
