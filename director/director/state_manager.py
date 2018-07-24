@@ -50,7 +50,7 @@ class StateManager:
         wanted_pos = None
         
         if params and params.pos and params.pos.col and params.pos.row:
-            wanted_pos = dict(col=params['col'], row=params['row'])
+            wanted_pos = dict(col=params.pos.col, row=params.pos.row)
         
         if name not in self._state:
             logger.debug('loading state for %s', name)

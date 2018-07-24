@@ -128,16 +128,16 @@ async def call(name, method, **params):
 
 
 @dome.expose(path='/run/{name}')
-async def run(name, **kwargs):
+async def run(name, **params):
     """
     Create image and run new container with service
     """
 
-    params = Prodict(**kwargs)
+    params = Prodict(**params)
 
     if not image_navigator.is_native(name):
         return 404
-
+    logger.debug('Called api.run with: %s', params)
     # Build options
     build_opts = {}
 
@@ -152,8 +152,8 @@ async def run(name, **kwargs):
 
     # Position on dashboard
     if 'pos' in params:
-        
-        params['pos'] = params['pos'] and ServicePostion(params.pos.split('x'))
+        print(params.pos.split('x'))
+        params.pos = params.pos and ServicePostion(*params.pos.split('x'))
 
     # Get / create
     srv = await state.get(name, params=params)
