@@ -190,9 +190,6 @@ class ServiceState(Prodict):
     def set_dockstate(self, dockstate):
         if dockstate:
             self._dock = dockstate
-
-            print(self.meta)
-
             self._managed = True
             self._protected = self.meta.proptected or False
             self._persistent = self.meta.persistent or False
