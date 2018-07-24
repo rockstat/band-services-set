@@ -76,7 +76,7 @@ class StateManager:
             self._state[name] = srv
             
         if params and 'build_options' and params.build_options:
-            self._state[name].set_build_opts(params['build_options'])
+            self._state[name].set_build_opts(**params['build_options'])
 
         if wanted_pos:
             pos = self._allocate(name, **wanted_pos)

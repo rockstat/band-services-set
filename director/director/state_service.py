@@ -143,8 +143,8 @@ class ServiceState(Prodict):
     def build_options(self):
         return self._build_options
 
-    def set_build_opts(self, **kwargs):
-        self._build_options.update(kwargs)
+    def set_build_opts(self, **params):
+        self._build_options.update(params)
 
     def set_pos(self, col, row):
         if nn(col) and nn(row):
