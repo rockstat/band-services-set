@@ -27,6 +27,7 @@ class ServiceDashPosition(Prodict):
 
 
 class ServiceState(Prodict):
+    _meta: Prodict
     _app: Prodict
     _app_ts: int
     _dock: Prodict
@@ -36,27 +37,33 @@ class ServiceState(Prodict):
     _methods: List[MethodRegistration]
     _name: str
     _title: str
+    _managed: bool
+    _protected: bool
+    _persistent: bool
 
     def __init__(self, manager, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._app = Prodict()
-        self._dock = Prodict()
         self._pos = ServiceDashPosition()
-        self._methods = []
-        self._build_options = Prodict()
         self._manager = manager
+        self._build_options = Prodict()
         self._logs = deque(maxlen=1000)
-
         self._name = name
         self._title = name.replace('_', ' ').title()
+        self.clean_status()
 
     def clean_status(self):
-        logger.debug('cleaning state of %s', self.name)
+        logger.debug('restoring state of %s', self.name)
+        self._meta = Prodict()
         self._app = Prodict()
         self._app_ts = None
+        self._methods = []
+
         self._dock = Prodict()
         self._dock_ts = None
         self._methods = []
+        self._managed = False
+        self._protected = False
+        self._persistent = False
 
     @property
     def config(self):
@@ -92,11 +99,20 @@ class ServiceState(Prodict):
             sla=randint(98, 99),
             mem=randint(1, 3),
             cpu=randint(1, 3),
+            meta=dict(
+                managed=self._managed,
+                protected=self._protected,
+                persistent=self._persistent
+            )
         )
 
     @property
     def methods(self):
         return self._methods
+
+    @property
+    def meta(self):
+        return self._meta
 
     @property
     def pos(self):
@@ -127,7 +143,7 @@ class ServiceState(Prodict):
     def build_options(self):
         return self._build_options
 
-    def set_build_opts(self, **kwargs):        
+    def set_build_opts(self, **kwargs):
         self._build_options.update(kwargs)
 
     def set_pos(self, col, row):
@@ -138,7 +154,7 @@ class ServiceState(Prodict):
     def set_meta(self, meta):
         if not meta:
             return
-        
+        self._meta = meta
         if 'title' in meta:
             self.set_title(meta.title)
 
@@ -170,10 +186,17 @@ class ServiceState(Prodict):
     def dockstate(self):
         if self._dock_ts and time() < self._dock_ts + SERVICE_TIMEOUT:
             return self._dock
-
+    
     def set_dockstate(self, dockstate):
         if dockstate:
             self._dock = dockstate
+
+            print(self.meta)
+
+            self._managed = True
+            self._protected = self.meta.proptected or False
+            self._persistent = self.meta.persistent or False
+
             if dockstate.running == True:
                 self.save_config()
                 self._dock_ts = time()
