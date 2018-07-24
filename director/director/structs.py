@@ -7,3 +7,4 @@ IMAGE_CATEGORIES = Prodict(user='user', collection='collection', base='base')
 ImageObj = namedtuple('ImageObj', 'name category path')
 
 
+ServicePostion = namedtuple('ServicePostion', 'col row')

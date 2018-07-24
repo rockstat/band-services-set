@@ -1,4 +1,5 @@
 ---
-col: 0
-row: 1
+pos:
+  col: 0
+  row: 1
 title: Maxmind ip2geo

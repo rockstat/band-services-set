@@ -1,4 +1,5 @@
 ---
-col: 1
-row: 1
+pos:
+  col: 1
+  row: 1
 title: Sypex ip2geo

@@ -14,6 +14,7 @@ from .state_ctx import StateCtx
 from .state_service import ServiceState
 from .image_navigator import ImageNavigator
 
+
 image_navigator = ImageNavigator(**settings)
 band_config = BandConfig(**settings)
 dock = DockerManager(image_navigator=image_navigator, **settings)
@@ -44,36 +45,57 @@ class StateManager:
     def __contains__(self, name):
         return name in self._state
 
-    async def get(self, name):
+    async def get(self, name, **kwargs):
+        params = kwargs.pop('params', None)
+        wanted_pos = None
+        
+        if params and params.pos and params.pos.col and params.pos.row:
+            wanted_pos = dict(col=params['col'], row=params['row'])
+        
         if name not in self._state:
             logger.debug('loading state for %s', name)
             config = await band_config.load_config(name)
             meta = await image_navigator.image_meta(name)
+            
             srv = ServiceState(name=name, manager=self)
+            
             if meta:
                 srv.set_meta(meta)
 
-            pos_base = None
-            if config:
-                if 'pos' in config:
-                    pos_base = config.pos
+            if not wanted_pos and config and 'pos' in config:
+                if nn(config.pos.col) and nn(config.pos.row):
+                    wanted_pos = config.pos
 
-            if not pos_base and meta and nn(meta.col) and nn(meta.row):
-                pos_base = dict(col=meta.col, row=meta.row)
-
-            pos_base = pos_base or {}
-            pos_base = self._allocate(name, **pos_base)
-            srv.set_pos(**pos_base)
+            if not wanted_pos and meta and 'pos' in meta:
+                if nn(meta.pos.col) and nn(meta.pos.row):
+                    wanted_pos = meta.pos
+            
+            if not wanted_pos:
+                wanted_pos = dict(col=DEFAULT_COL, row=DEFAULT_ROW)
+            
             self._state[name] = srv
-        
+            
+        if params and 'build_options' and params.build_options:
+            self._state[name].set_build_options(params['build_options'])
+
+        if wanted_pos:
+            pos = self._allocate(name, **wanted_pos)
+            self._state[name].set_pos(**pos)
+            
         return self._state[name]
+
+    async def run_service(self, name):
+        srv = await self.get(name)
+        srv.clean_status()
+        await dock.run_container(name, **srv.config.build_options)
+        await self.add_to_startup(name)
+        await self.resolve_docstatus(name)
 
     async def resolve_docstatus(self, name):
         srv = await self.get(name)
         container = await dock.get(name)
         if container:
             srv.set_dockstate(container.full_state())
-        
 
     async def resolve_docstatus_all(self):
         for container in await dock.containers(struct=list):
@@ -95,7 +117,7 @@ class StateManager:
                 occupied.append(srv.pos.to_s())
         return occupied
 
-    def _allocate(self, name, col=DEFAULT_COL, row=DEFAULT_ROW):
+    def _allocate(self, name, col, row):
         """
         Allocating dashboard position for container close to wanted
         """

@@ -10,6 +10,7 @@ import copy
 from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
+from .structs import ServicePostion
 from .constants import STATUS_RUNNING, STARTED
 from .helpers import merge, str2bool
 from . import dock, state, image_navigator
@@ -71,10 +72,9 @@ async def sync_status(name, **params):
 
     # Loading state, config, meta
     status = await rpc.request(name, REQUEST_STATUS, **payload)
-    
+
     srv.set_appstate(status)
-    
-    
+
 
 async def check_regs_changed():
     key = hash(ujson.dumps(await registrations()))
@@ -92,7 +92,7 @@ async def show(name, **params):
     # check container exists
     if not container:
         return 404
-    return container and container.short_info
+    return container and container.full_state()
 
 
 @dome.expose()
@@ -132,17 +132,37 @@ async def run(name, **kwargs):
     """
     Create image and run new container with service
     """
+
+    params = Prodict(**kwargs)
+
     if not image_navigator.is_native(name):
         return 404
 
-    srv = await state.get(name)
-    srv.set_build_opts(**kwargs)
+    # Build options
+    build_opts = {}
 
-    logger.info('request with params: %s. Using config: %s', kwargs,
+    if 'env' in params:
+        build_opts['env'] = params['env']
+    if 'nocache' in params:
+        build_opts['nocache'] = str2bool(params['nocache'])
+    if 'auto_remove' in params:
+        build_opts['auto_remove'] = str2bool(params['auto_remove'])
+
+    params['build_options'] = build_opts
+
+    # Position on dashboard
+    if 'pos' in params:
+        params['pos'] = ServicePostion(params['pos'].split('x'))
+
+    # Get / create
+    srv = await state.get(name, params=params)
+
+    logger.info('request with params: %s. Using config: %s', params,
                 srv.config)
-    await dock.run_container(name, **srv.config.build_options)
+
     # save params and state only if successfully starter
-    await state.add_to_startup(name)
+    await app['scheduler'].spawn(state.run_service(name))
+    await asyncio.sleep(0.2)
     await state.resolve_docstatus(name)
     return srv.full_state()
 

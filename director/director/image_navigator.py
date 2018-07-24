@@ -70,7 +70,7 @@ class ImageNavigator():
 
     async def __read_meta(self, path):
         meta_config_path = f"{path}/meta.yml"
-        meta = Prodict()
+        meta = dict()
         if os.path.exists(meta_config_path) and os.path.isfile(
                 meta_config_path):
             async with aiofiles.open(meta_config_path, mode='r') as f:
@@ -91,7 +91,7 @@ class ImageNavigator():
         st = await aios.stat(path)
         bn = os.path.basename(path)
         if stat.S_ISDIR(st.st_mode):
-            if not bn.startswith('___') and not bn.startswith('.'):
+            if not bn.startswith('__') and not bn.startswith('.'):
                 return (path, bn)
 
     async def lst(self):

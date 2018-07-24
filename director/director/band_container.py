@@ -88,22 +88,6 @@ class BandContainer():
             return self.d.State.Status
         return self.d.State
 
-    def full_state(self):
-        started_at = self.started_at
-        uptime = None
-        if started_at:
-            start_ts = started_at.timestamp
-            now_ts = arrow.now().timestamp
-            uptime_sec = now_ts - start_ts 
-            uptime_sec = uptime_sec if uptime_sec > 0 else 0
-
-        return Prodict(
-            running=self.running,
-            started_at=start_ts * 1000,
-            created=self.create_ts,
-            uptime=uptime_sec * 1000,
-            state=self.state)
-
     @property
     def running(self):
         return self.state == STATUS_RUNNING
@@ -146,6 +130,10 @@ class BandContainer():
         return bool(self.labels().inband)
 
     @property
+    def inband_val(self):
+        return self.labels().inband
+
+    @property
     def native(self):
         return self.labels().inband == 'native'
 
@@ -153,6 +141,24 @@ class BandContainer():
     def short_info(self):
         return Prodict(
             name=self.name, short_id=self.short_id, state=self.state)
+
+    def full_state(self):
+        started_at = self.started_at
+        start_ts=None
+        uptime_sec = None
+        if started_at:
+            start_ts = started_at.timestamp
+            now_ts = arrow.now().timestamp
+            uptime_sec = now_ts - start_ts
+            uptime_sec = uptime_sec if uptime_sec > 0 else 0
+
+        return Prodict(
+            running=self.running,
+            inband=self.inband_val,
+            started_at=start_ts * 1000,
+            created=self.create_ts,
+            uptime=uptime_sec * 1000,
+            state=self.state)
 
     def __getattr__(self, name):
         if hasattr(self.c, name):

@@ -2,6 +2,7 @@ from prodict import Prodict
 from typing import List, Dict
 from time import time
 from random import randint
+from collections import deque
 from .constants import SERVICE_TIMEOUT, STATUS_RUNNING
 from .helpers import nn, isn, str2bool
 from band import logger
@@ -44,6 +45,7 @@ class ServiceState(Prodict):
         self._methods = []
         self._build_options = Prodict()
         self._manager = manager
+        self._logs = deque(maxlen=1000)
 
         self._name = name
         self._title = name.replace('_', ' ').title()
@@ -66,9 +68,11 @@ class ServiceState(Prodict):
         state = None
         running = None
         uptime = None
+        inband = 'unknown'
         if docker:
             running = docker.running
             state = docker.state
+            inband = docker.inband
             if appdata and appdata.app_uptime:
                 uptime = appdata.app_uptime
             else:
@@ -83,6 +87,7 @@ class ServiceState(Prodict):
             state=state,
             running=running,
             title=self.title,
+            inband=inband,
             pos=self.pos,
             sla=randint(98, 99),
             mem=randint(1, 3),
@@ -122,14 +127,8 @@ class ServiceState(Prodict):
     def build_options(self):
         return self._build_options
 
-    def set_build_opts(self, **kwargs):
-        if 'env' in kwargs:
-            self._build_options.update(env=kwargs['env'])
-        if 'nocache' in kwargs:
-            self._build_options.update(nocache=str2bool(kwargs['nocache']))
-        if 'auto_remove' in kwargs:
-            self._build_options.update(
-                auto_remove=str2bool(kwargs['auto_remove']))
+    def set_build_opts(self, **kwargs):        
+        self._build_options.update(kwargs)
 
     def set_pos(self, col, row):
         if nn(col) and nn(row):
@@ -137,9 +136,11 @@ class ServiceState(Prodict):
             self._pos.row = row
 
     def set_meta(self, meta):
-        if meta:
-            if 'title' in meta:
-                self.set_title(meta.title)
+        if not meta:
+            return
+        
+        if 'title' in meta:
+            self.set_title(meta.title)
 
     def save_config(self):
         self._manager.save_config(self.name, self.config)

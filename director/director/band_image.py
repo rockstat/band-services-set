@@ -35,10 +35,29 @@ class BandImage(Prodict):
     name: str
     path: str
     key: str
+    pos: Dict
+    protected: bool
+    managed: bool
+    persistent: bool
+    title: str
     base: str
     p: subprocess.Popen
     d: Prodict
     meta: Prodict
+
+    def __init__(self, *args, **kwargs):
+        meta = kwargs.pop('meta', {})
+
+        meta['protected'] = meta['protected'] if 'protected' in meta else False
+        meta['persistent'] = meta['persistent'] if 'persistent' in meta else False
+        
+        if 'title' not in meta and 'key' in kwargs and kwargs['key']:
+            meta['title'] = kwargs['key'].title().replace('_', ' ').replace('-', ' ')
+        
+        kwargs['meta'] = meta
+
+        super().__init__(*args, **kwargs)
+
 
     def set_data(self, data):
         self.d = Prodict.from_dict(data)
