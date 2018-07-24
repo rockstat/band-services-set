@@ -152,7 +152,7 @@ async def run(name, **kwargs):
 
     # Position on dashboard
     if 'pos' in params:
-        params['pos'] = ServicePostion(params['pos'].split('x'))
+        params['pos'] = ServicePostion(pos=(params.pos and params.pos.split('x')))
 
     # Get / create
     srv = await state.get(name, params=params)
