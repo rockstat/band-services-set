@@ -90,6 +90,7 @@ class ServiceState(Prodict):
             running = True
             state = STATUS_RUNNING
             uptime = appdata.app_uptime
+
         return Prodict(
             name=self.name,
             uptime=uptime,
@@ -165,7 +166,6 @@ class ServiceState(Prodict):
         if not meta:
             return
         self._meta = meta
-        self._native = meta.native
         if 'title' in meta:
             self.set_title(meta.title)
 
@@ -211,9 +211,13 @@ class ServiceState(Prodict):
             self._dock = dockstate
             self._managed = True
             self._manual_state = None
-            self._protected = self.meta.proptected or False
-            self._persistent = self.meta.persistent or False
-            self._native = self.meta.native or False
+            if self.meta:
+                if nn(self.meta.protected):
+                    self._protected = self.meta.protected
+                if nn(self.meta.persistent):
+                    self._persistent = self.meta.persistent
+                if nn(self.meta.native):
+                    self._native = self.meta.native
 
             if dockstate.running == True:
                 self.save_config()
