@@ -58,7 +58,7 @@ class ServiceState(Prodict):
         self._app = Prodict()
         self._app_ts = None
         self._methods = []
-        self._manual_state = None
+        self._status_override = None
         self._dock = Prodict()
         self._dock_ts = None
         self._methods = []
@@ -94,7 +94,7 @@ class ServiceState(Prodict):
         return Prodict(
             name=self.name,
             uptime=uptime,
-            state=self._manual_state or state,
+            state=self._status_override or state,
             title=self.title,
             inband=inband,
             pos=self.pos,
@@ -176,13 +176,15 @@ class ServiceState(Prodict):
     def appstate(self):
         if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:
             return self._app
+    def set_status_override(self, status):
+        self._status_override = status
 
     def set_status_starting(self):
-        self._manual_state = STATUS_STARTING
+        self._status_override = STATUS_STARTING
         pass
 
     def set_status_removing(self):
-        self._manual_state = STATUS_REMOVING
+        self._status_override = STATUS_REMOVING
         pass
 
     def set_methods(self, methods):
@@ -210,7 +212,7 @@ class ServiceState(Prodict):
         if dockstate:
             self._dock = dockstate
             self._managed = True
-            self._manual_state = None
+            self._status_override = None
             if self.meta:
                 if nn(self.meta.protected):
                     self._protected = self.meta.protected

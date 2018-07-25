@@ -1,6 +1,8 @@
 STATUS_RUNNING = 'running'
 STATUS_STARTING = 'starting'
+STATUS_RESTARTING = 'restarting'
 STATUS_REMOVING = 'removing'
+STATUS_STOPPING = 'stopping'
 SYSTEM_CONTAINERS = [
     'chproxy', 'grafana', 'anaconda', 'openvpn', 'theia', 'heavyload',
     'frontier'

@@ -110,6 +110,13 @@ class DockerManager():
             await conts[name].stop()
             return True
 
+    async def start_container(self, name):
+        conts = await self.containers()
+        if name in conts:
+            logger.info(f"starting container {name}")
+            await conts[name].start()
+            return True
+
     async def restart_container(self, name):
         conts = await self.containers()
         if name in conts:

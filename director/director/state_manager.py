@@ -5,11 +5,17 @@ import ujson
 import asyncio
 from pprint import pprint
 from collections import defaultdict
+from itertools import count
 
 from band import settings, rpc, app
+from band.constants import (NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE,
+                            DIRECTOR_SERVICE)
+
 from .band_config import BandConfig
 from .docker_manager import DockerManager
-from .constants import STARTED_SET, SERVICE_TIMEOUT, DEFAULT_COL, DEFAULT_ROW
+from .constants import (STARTED_SET, SERVICE_TIMEOUT, DEFAULT_COL, DEFAULT_ROW,
+                        STATUS_RESTARTING, STATUS_REMOVING, STATUS_STARTING,
+                        STATUS_STOPPING)
 from .state_ctx import StateCtx
 from .state_service import ServiceState
 from .image_navigator import ImageNavigator
@@ -36,6 +42,25 @@ class StateManager:
         started_present = await band_config.set_exists(STARTED_SET)
         if not started_present:
             await band_config.set_add(STARTED_SET, *settings.default_services)
+        """
+        Onstart tasks: loaders, readers, etc...
+        """
+        # starting config
+        # looking for containers to request status
+        for container in await dock.containers(struct=list):
+            if container.running and container.native:
+                await app['scheduler'].spawn(
+                    self.request_app_state(container.name))
+
+        for num in count():
+            # Remove expired services
+            try:
+                await asyncio.sleep(5)
+                await self.resolve_docstatus_all()
+                await self.check_regs_changed()
+            except Exception:
+                logger.exception('state initialize')
+            await asyncio.sleep(1)
 
     @property
     def state(self):
@@ -90,12 +115,12 @@ class StateManager:
         pass
 
     async def run_service(self, name, no_wait=False):
-        srv = await self.get(name)
-        srv.clean_status()
-        srv.set_status_starting()
+        svc = await self.get(name)
+        svc.clean_status()
+        svc.set_status_override(STATUS_STARTING)
         coro = self._do_run_service(name)
-        await ( app['scheduler'].spawn(coro) if no_wait else coro )
-
+        await (app['scheduler'].spawn(coro) if no_wait else coro)
+        return svc
 
     async def _do_run_service(self, name):
         svc = await self.get(name)
@@ -106,15 +131,58 @@ class StateManager:
     async def remove_service(self, name, no_wait=False):
         svc = await self.get(name)
         await band_config.set_rm(STARTED_SET, name)
-        svc.set_status_removing()
+        svc.set_status_override(STATUS_REMOVING)
         coro = self._do_remove_service(name)
-        await ( app['scheduler'].spawn(coro) if no_wait else coro )
+        await (app['scheduler'].spawn(coro) if no_wait else coro)
+        return svc
 
+    async def stop_service(self, name, no_wait=False):
+        svc = await self.get(name)
+        await band_config.set_rm(STARTED_SET, name)
+        svc.set_status_override(STATUS_STOPPING)
+        coro = self._do_stop_service(name)
+        await (app['scheduler'].spawn(coro) if no_wait else coro)
+        return svc
+
+    async def _do_stop_service(self, name):
+        svc = await self.get(name)
+        await dock.stop_container(name)
+        svc.clean_status()
+
+    async def start_service(self, name, no_wait=False):
+        svc = await self.get(name)
+        if svc.native:
+            await band_config.set_add(STARTED_SET, name)
+        svc.set_status_override(STATUS_STARTING)
+        coro = self._do_start_service(name)
+        await (app['scheduler'].spawn(coro) if no_wait else coro)
+        return svc
+
+    async def _do_start_service(self, name):
+        svc = await self.get(name)
+        await dock.start_container(name)
+        svc.clean_status()
 
     async def _do_remove_service(self, name):
         svc = await self.get(name)
         await dock.remove_container(name)
         svc.clean_status()
+
+    async def restart_service(self, name, no_wait=False):
+        svc = await self.get(name)
+        svc.set_status_override(STATUS_RESTARTING)
+        coro = self._do_restart_service(name)
+        await (app['scheduler'].spawn(coro) if no_wait else coro)
+        return svc
+
+    async def _do_restart_service(self, name):
+        container = await dock.get(name)
+        svc = await self.get(name)
+        if container:
+            svc.clean_status()
+            await dock.restart_container(name)
+            svc.clean_status()
+            await self.check_regs_changed()
 
     async def resolve_docstatus(self, name):
         svc = await self.get(name)
@@ -183,9 +251,6 @@ class StateManager:
     async def should_start(self):
         return await band_config.set_get(STARTED_SET)
 
-    async def unload(self):
-        await band_config.unload()
-
     async def handle_auto_start(self):
         for item in await self.should_start():
             svc = await s.get(item)
@@ -194,5 +259,36 @@ class StateManager:
             # if not (item in state and ().is_active()):
             # asyncio.ensure_future(run(item))
 
+    async def request_app_state(self, name):
+        svc = await self.get(name)
+        # Service-dependent payload send with status request
+        payload = dict()
+        # Payload for frontend servoce
+        if name == FRONTIER_SERVICE:
+            payload.update(self.registrations())
+
+        # Loading state, config, meta
+        status = await rpc.request(name, REQUEST_STATUS, **payload)
+        svc.set_appstate(status)
+
+    async def check_regs_changed(self):
+        key = hash(ujson.dumps(self.registrations()))
+        # If registrations changed frontier shold know about that
+        if key != self.last_key:
+            self.last_key = key
+            await self.request_app_state(FRONTIER_SERVICE)
+
+    def registrations(self):
+        methods = []
+        for svc in self.values():
+            if svc.is_active():
+                for method in svc.methods:
+                    methods.append(method)
+        return dict(register=methods)
+
     def clean_ctx(self, name, coro):
         return StateCtx(self, name, coro)
+
+    async def unload(self):
+        await band_config.unload()
+        await dock.close()

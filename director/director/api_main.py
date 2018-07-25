@@ -1,6 +1,5 @@
 from asyncio import sleep
 from collections import defaultdict, deque
-from itertools import count
 from prodict import Prodict
 from time import time
 import asyncio
@@ -48,13 +47,8 @@ async def registrations(**params):
     Provide global RPC registrations information
     Method for debug purposes
     """
-    methods = []
+    return state.registrations()
     # Iterating over containers and their methods
-    for srv in state.values():
-        if srv.is_active():
-            for method in srv.methods:
-                methods.append(method)
-    return dict(register=methods)
 
 
 @dome.expose(name=NOTIFY_ALIVE)
@@ -63,24 +57,7 @@ async def sync_status(name, **params):
     Listen for services promotions then ask their statuses.
     It some cases takes payload to reduce calls amount
     """
-    # Service-dependent payload send with status request
-    srv = await state.get(name)
-    payload = dict()
-    # Payload for frontend servoce
-    if name == FRONTIER_SERVICE:
-        payload.update(await registrations())
-
-    # Loading state, config, meta
-    status = await rpc.request(name, REQUEST_STATUS, **payload)
-
-    srv.set_appstate(status)
-
-
-async def check_regs_changed():
-    key = hash(ujson.dumps(await registrations()))
-    if key != state.last_key:
-        state.last_key = key
-        await sync_status(name=FRONTIER_SERVICE)
+    await state.request_app_state(name)
 
 
 @dome.expose(path='/show/{name}')
@@ -160,7 +137,7 @@ async def run(name, **params):
                 srv.config)
 
     # save params and state only if successfully starter
-    await state.run_service(name, no_wait=True)
+    svc = await state.run_service(name, no_wait=True)
     return srv.full_state()
 
 
@@ -179,13 +156,8 @@ async def restart(name, **params):
     """
     Restart service
     """
-    container = await dock.get(name)
-    # check container exists
-    if not container:
-        return 404
-    # executing main action
-    async with state.clean_ctx(name, check_regs_changed()):
-        return await dock.restart_container(name)
+    svc = await state.restart_service(name, no_wait=True)
+    return svc.full_state()
 
 
 @dome.expose(path='/stop/{name}')
@@ -193,16 +165,24 @@ async def stop(name, **params):
     """
     Stop container. Only for persistent containers
     """
-    container = await dock.get(name)
     # check container exists
-    if not container:
+    if not state.is_exists(name):
         return 404
-    # accessible only for persistent containers
-    if not container.auto_removable():
-        return 400
     # executing main action
-    async with state.clean_ctx(name, check_regs_changed()):
-        return await dock.stop_container(name)
+    svc = await state.stop_service(name, no_wait=True)
+    return svc.full_state()
+
+
+@dome.expose(path='/start/{name}')
+async def start(name, **params):
+    """
+    Start
+    """
+    if not state.is_exists(name):
+        return 404
+    # executing main action
+    svc = await state.start_service(name, no_wait=True)
+    return svc.full_state()
 
 
 @dome.expose(path='/rm/{name}')
@@ -213,52 +193,5 @@ async def remove(name, **params):
     # check container exists
     if not state.is_exists(name):
         return 404
-    svc = await state.get(name)
-    await state.remove_service(name, no_wait=True)
+    svc = await state.remove_service(name, no_wait=True)
     return svc.full_state()
-
-
-@dome.tasks.add
-async def startup():
-    """
-    Heart-beat task
-    """
-    for num in count():
-        """
-        Load steps:
-        0. Loading data, sending requests
-        2. Creating missing
-        3+ Monitoring
-        """
-        if num == 0:
-            """
-            Onstart tasks: loaders, readers, etc...
-            """
-            # starting config
-            await state.initialize()
-            # looking for containers to request status
-            for container in await dock.containers(struct=list):
-                if container.running and container.native:
-                    asyncio.ensure_future(sync_status(container.name))
-
-        if num == 1:
-            """
-            Starting missing services
-            """
-
-        # Remove expired services
-        await sleep(5)
-        await state.resolve_docstatus_all()
-        await check_regs_changed()
-
-
-@dome.shutdown
-async def unloader():
-    """
-    Graceful shutdown task
-    """
-    # Closing configs holder
-    await state.unload()
-    # Shutdown docker client
-    await dock.close()
-    # pass
