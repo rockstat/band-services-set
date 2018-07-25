@@ -6,14 +6,13 @@ import asyncio
 from pprint import pprint
 from collections import defaultdict
 
-from band import settings, rpc
+from band import settings, rpc, app
 from .band_config import BandConfig
 from .docker_manager import DockerManager
-from .constants import STARTED, SERVICE_TIMEOUT, DEFAULT_COL, DEFAULT_ROW
+from .constants import STARTED_SET, SERVICE_TIMEOUT, DEFAULT_COL, DEFAULT_ROW
 from .state_ctx import StateCtx
 from .state_service import ServiceState
 from .image_navigator import ImageNavigator
-
 
 image_navigator = ImageNavigator(**settings)
 band_config = BandConfig(**settings)
@@ -34,31 +33,35 @@ class StateManager:
         await image_navigator.load()
         await self.resolve_docstatus_all()
         # check state exists
-        started_present = await band_config.set_exists(STARTED)
+        started_present = await band_config.set_exists(STARTED_SET)
         if not started_present:
-            await band_config.set_add(STARTED, *settings.default_services)
+            await band_config.set_add(STARTED_SET, *settings.default_services)
 
     @property
     def state(self):
         return self._state
 
     def __contains__(self, name):
+        return self.is_exists(name)
+
+    def is_exists(self, name):
         return name in self._state
 
     async def get(self, name, **kwargs):
         params = kwargs.pop('params', None)
         wanted_pos = None
-        
+
         if params and params.pos and params.pos.col and params.pos.row:
             wanted_pos = dict(col=params.pos.col, row=params.pos.row)
-        
+
         if name not in self._state:
+
             logger.debug('loading state for %s', name)
             config = await band_config.load_config(name)
             meta = await image_navigator.image_meta(name)
-            
+
             srv = ServiceState(name=name, manager=self)
-            
+
             if meta:
                 srv.set_meta(meta)
 
@@ -69,40 +72,63 @@ class StateManager:
             if not wanted_pos and meta and 'pos' in meta:
                 if nn(meta.pos.col) and nn(meta.pos.row):
                     wanted_pos = meta.pos
-            
+
             if not wanted_pos:
                 wanted_pos = dict(col=DEFAULT_COL, row=DEFAULT_ROW)
-            
+
             self._state[name] = srv
-            
+
         if params and 'build_options' and params.build_options:
             self._state[name].set_build_opts(**params['build_options'])
 
         if wanted_pos:
             pos = self._allocate(name, **wanted_pos)
             self._state[name].set_pos(**pos)
-            
         return self._state[name]
 
-    async def run_service(self, name):
+    async def _init_service(self, name):
+        pass
+
+    async def run_service(self, name, no_wait=False):
         srv = await self.get(name)
         srv.clean_status()
-        await dock.run_container(name, **srv.config.build_options)
-        await self.add_to_startup(name)
+        srv.set_status_starting()
+        coro = self._do_run_service(name)
+        await ( app['scheduler'].spawn(coro) if no_wait else coro )
+
+
+    async def _do_run_service(self, name):
+        svc = await self.get(name)
+        await dock.run_container(name, **svc.config.build_options)
+        await band_config.set_add(STARTED_SET, name)
         await self.resolve_docstatus(name)
 
+    async def remove_service(self, name, no_wait=False):
+        svc = await self.get(name)
+        await band_config.set_rm(STARTED_SET, name)
+        svc.set_status_removing()
+        coro = self._do_remove_service(name)
+        await ( app['scheduler'].spawn(coro) if no_wait else coro )
+
+
+    async def _do_remove_service(self, name):
+        svc = await self.get(name)
+        await dock.remove_container(name)
+        svc.clean_status()
+
     async def resolve_docstatus(self, name):
-        srv = await self.get(name)
+        svc = await self.get(name)
         container = await dock.get(name)
         if container:
-            srv.set_dockstate(container.full_state())
+            svc.set_dockstate(container.full_state())
 
     async def resolve_docstatus_all(self):
         for container in await dock.containers(struct=list):
             await self.resolve_docstatus(container.name)
 
     def save_config(self, name, config):
-        asyncio.ensure_future(band_config.save_config(name, config))
+        job = app['scheduler'].spawn(band_config.save_config(name, config))
+        asyncio.ensure_future(job)
 
     def values(self):
         return self._state.values()
@@ -149,22 +175,24 @@ class StateManager:
         (await self.get(name)).clean_status()
 
     async def runned_set(self):
-        return await band_config.set_get(STARTED)
+        return await band_config.set_get(STARTED_SET)
 
     async def configs(self):
         return await band_config.configs_list()
 
     async def should_start(self):
-        return await band_config.set_get(STARTED)
-
-    async def add_to_startup(self, name):
-        await band_config.set_add(STARTED, name)
-
-    async def rm(self, name):
-        await band_config.set_rm(STARTED, name)
+        return await band_config.set_get(STARTED_SET)
 
     async def unload(self):
         await band_config.unload()
+
+    async def handle_auto_start(self):
+        for item in await self.should_start():
+            svc = await s.get(item)
+            if not svc.is_active() and svc.native:
+                await self.run_service(svc.name)
+            # if not (item in state and ().is_active()):
+            # asyncio.ensure_future(run(item))
 
     def clean_ctx(self, name, coro):
         return StateCtx(self, name, coro)

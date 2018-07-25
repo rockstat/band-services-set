@@ -50,6 +50,7 @@ class BandImage(Prodict):
         
         name_title = (kwargs.get('key', None) or 'unknown').title().replace('_', ' ').replace('-', ' ')
         kwargs['title'] = kwargs.get('title', name_title)
+        kwargs['meta'] = meta
         
         super().__init__(*args, **kwargs)
 

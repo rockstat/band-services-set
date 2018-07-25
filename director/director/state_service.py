@@ -3,9 +3,9 @@ from typing import List, Dict
 from time import time
 from random import randint
 from collections import deque
-from .constants import SERVICE_TIMEOUT, STATUS_RUNNING
+from .constants import SERVICE_TIMEOUT, STATUS_RUNNING, STATUS_STARTING, STATUS_REMOVING
 from .helpers import nn, isn, str2bool
-from band import logger
+from band import logger, app
 
 
 class MethodRegistration(Prodict):
@@ -40,6 +40,7 @@ class ServiceState(Prodict):
     _managed: bool
     _protected: bool
     _persistent: bool
+    _native: bool
 
     def __init__(self, manager, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -57,13 +58,14 @@ class ServiceState(Prodict):
         self._app = Prodict()
         self._app_ts = None
         self._methods = []
-
+        self._manual_state = None
         self._dock = Prodict()
         self._dock_ts = None
         self._methods = []
         self._managed = False
         self._protected = False
         self._persistent = False
+        self._native = False
 
     @property
     def config(self):
@@ -75,7 +77,7 @@ class ServiceState(Prodict):
         state = None
         running = None
         uptime = None
-        inband = 'unknown'
+        inband = False
         if docker:
             running = docker.running
             state = docker.state
@@ -91,20 +93,24 @@ class ServiceState(Prodict):
         return Prodict(
             name=self.name,
             uptime=uptime,
-            state=state,
-            running=running,
+            state=self._manual_state or state,
             title=self.title,
             inband=inband,
             pos=self.pos,
+            # TODO: remove when dashboard updated
             sla=randint(98, 99),
             mem=randint(1, 3),
             cpu=randint(1, 3),
+            stat=dict(
+                sla=randint(98, 99),
+                mem=randint(1, 3),
+                cpu=randint(1, 3),
+            ),
             meta=dict(
+                native=self._native,
                 managed=self._managed,
                 protected=self._protected,
-                persistent=self._persistent
-            )
-        )
+                persistent=self._persistent))
 
     @property
     def methods(self):
@@ -128,6 +134,10 @@ class ServiceState(Prodict):
     @property
     def title(self):
         return self._title
+
+    @property
+    def native(self):
+        return self._native
 
     def is_active(self):
         ds = self.dockstate
@@ -155,6 +165,7 @@ class ServiceState(Prodict):
         if not meta:
             return
         self._meta = meta
+        self._native = meta.native
         if 'title' in meta:
             self.set_title(meta.title)
 
@@ -165,6 +176,14 @@ class ServiceState(Prodict):
     def appstate(self):
         if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:
             return self._app
+
+    def set_status_starting(self):
+        self._manual_state = STATUS_STARTING
+        pass
+
+    def set_status_removing(self):
+        self._manual_state = STATUS_REMOVING
+        pass
 
     def set_methods(self, methods):
         if not methods: return
@@ -186,13 +205,15 @@ class ServiceState(Prodict):
     def dockstate(self):
         if self._dock_ts and time() < self._dock_ts + SERVICE_TIMEOUT:
             return self._dock
-    
+
     def set_dockstate(self, dockstate):
         if dockstate:
             self._dock = dockstate
             self._managed = True
+            self._manual_state = None
             self._protected = self.meta.proptected or False
             self._persistent = self.meta.persistent or False
+            self._native = self.meta.native or False
 
             if dockstate.running == True:
                 self.save_config()

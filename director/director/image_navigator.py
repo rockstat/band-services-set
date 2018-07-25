@@ -70,7 +70,7 @@ class ImageNavigator():
 
     async def __read_meta(self, path):
         meta_config_path = f"{path}/meta.yml"
-        meta = dict()
+        meta = dict(native=True)
         if os.path.exists(meta_config_path) and os.path.isfile(
                 meta_config_path):
             async with aiofiles.open(meta_config_path, mode='r') as f:

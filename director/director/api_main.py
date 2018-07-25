@@ -11,7 +11,7 @@ from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
 from .structs import ServicePostion
-from .constants import STATUS_RUNNING, STARTED
+from .constants import STATUS_RUNNING, STARTED_SET
 from .helpers import merge, str2bool
 from . import dock, state, image_navigator
 
@@ -151,20 +151,16 @@ async def run(name, **params):
     params['build_options'] = build_opts
 
     # Position on dashboard
-    if 'pos' in params:
-        print(params.pos.split('x'))
-        params.pos = params.pos and ServicePostion(*params.pos.split('x'))
+    if 'pos' in params and params.pos:
+        params.pos = ServicePostion(*params.pos.split('x'))
 
     # Get / create
     srv = await state.get(name, params=params)
-
     logger.info('request with params: %s. Using config: %s', params,
                 srv.config)
 
     # save params and state only if successfully starter
-    await app['scheduler'].spawn(state.run_service(name))
-    await asyncio.sleep(0.2)
-    await state.resolve_docstatus(name)
+    await state.run_service(name, no_wait=True)
     return srv.full_state()
 
 
@@ -214,16 +210,12 @@ async def remove(name, **params):
     """
     Unload/remove service
     """
-    container = await dock.get(name)
     # check container exists
-    if not container:
+    if not state.is_exists(name):
         return 404
-
-    async with state.clean_ctx(name, check_regs_changed()):
-        # removing from control list
-        await state.rm(name)
-        # executing remove
-        return await dock.remove_container(name)
+    svc = await state.get(name)
+    await state.remove_service(name, no_wait=True)
+    return svc.full_state()
 
 
 @dome.tasks.add
@@ -253,9 +245,7 @@ async def startup():
             """
             Starting missing services
             """
-            for item in await state.should_start():
-                if not (item in state and (await state.get(item)).is_active()):
-                    asyncio.ensure_future(run(item))
+
         # Remove expired services
         await sleep(5)
         await state.resolve_docstatus_all()
