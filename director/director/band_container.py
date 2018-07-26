@@ -143,9 +143,9 @@ class BandContainer():
             name=self.name, short_id=self.short_id, state=self.state)
 
     def full_state(self):
-        started_at = self.started_at
-        start_ts=None
-        uptime_sec = None
+        started_at = self.started_at or 0
+        start_ts = 0
+        uptime_sec = 0
         if started_at:
             start_ts = started_at.timestamp
             now_ts = arrow.now().timestamp
