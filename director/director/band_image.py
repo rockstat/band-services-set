@@ -24,7 +24,6 @@ class BandImageBuilder:
             'tag': self.img.name,
             'nocache': self.img_options.get('nocache', False),
             'pull': self.img_options.get('pull', False),
-            'labels': DEF_LABELS,
             'stream': True
         })
 
