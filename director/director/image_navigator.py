@@ -4,7 +4,7 @@ import stat
 import os
 from aiofiles import os as aios
 from collections import UserDict
-from prodict import Prodict
+from prodict import Prodict as pdict
 from .band_image import BandImage
 
 

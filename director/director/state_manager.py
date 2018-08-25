@@ -1,11 +1,12 @@
-from prodict import Prodict
+from prodict import Prodict as pdict
 from band import logger
-from .helpers import nn, isn, str2bool
+from .helpers import nn, isn, str2bool, merge_dicts
 import ujson
 import asyncio
 from pprint import pprint
 from collections import defaultdict
 from itertools import count
+from copy import deepcopy
 
 from band import settings, rpc, app
 from band.constants import (NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE,
@@ -42,6 +43,7 @@ class StateManager:
     async def initialize(self):
         await band_config.initialize()
         await image_navigator.load()
+        await self.load_config(SHARED_CONFIG_KEY)
         await self.resolve_docstatus_all()
         # check state exists
         started_present = await band_config.set_exists(STARTED_SET)
@@ -101,22 +103,28 @@ class StateManager:
     """
 
     async def get(self, name, **kwargs):
-        params = kwargs.pop('params', None)
+        params = kwargs.pop('params', pdict())
         wanted_pos = None
+        envs = []
 
-        if params and params.pos and params.pos.col and params.pos.row:
+        if params.pos and params.pos.col and params.pos.row:
             wanted_pos = dict(col=params.pos.col, row=params.pos.row)
 
         if name not in self._state:
-
             logger.debug('loading state for %s', name)
-            config = await band_config.load_config(name)
+            config = await self.load_config(name)
             meta = await image_navigator.image_meta(name)
 
-            srv = ServiceState(name=name, manager=self)
+            if meta and meta.env:
+                envs.append(meta.env)
+
+            if config.env:
+                envs.append(config.env)
+
+            svc = ServiceState(name=name, manager=self)
 
             if meta:
-                srv.set_meta(meta)
+                svc.set_meta(meta)
 
             if not wanted_pos and config and 'pos' in config:
                 if nn(config.pos.col) and nn(config.pos.row):
@@ -129,15 +137,25 @@ class StateManager:
             if not wanted_pos:
                 wanted_pos = dict(col=DEFAULT_COL, row=DEFAULT_ROW)
 
-            self._state[name] = srv
+            self._state[name] = svc
 
-        if params and 'build_options' and params.build_options:
-            self._state[name].set_build_opts(**params['build_options'])
+        svc = self._state[name]
+
+        # Container env
+        if params.env:
+            envs.append(params.env)
+
+        if len(envs):
+            svc.set_env(merge_dicts(*envs))
+        
+        if params.build_options:
+            svc.set_build_opts(**params['build_options'])
 
         if wanted_pos:
             pos = self._allocate(name, **wanted_pos)
-            self._state[name].set_pos(**pos)
-        return self._state[name]
+            svc.set_pos(**pos)
+
+        return svc
 
     async def run_service(self, name, no_wait=False):
         svc = await self.get(name)
@@ -149,8 +167,11 @@ class StateManager:
 
     async def _do_run_service(self, name):
         svc = await self.get(name)
-        await dock.run_container(name, **svc.config.build_options)
+        env = self._shared_config.get('env', {}).copy()
+        env.update(svc.env)
+        await dock.run_container(name, env=env, **svc.build_options)
         await band_config.set_add(STARTED_SET, name)
+        svc.save_config()
         await self.resolve_docstatus(name)
 
     async def remove_service(self, name, no_wait=False):
@@ -263,18 +284,37 @@ class StateManager:
     async def configs(self):
         return await band_config.configs_list()
 
+    async def load_config(self, name):
+        config = await band_config.load_config(name)
+        if name == SHARED_CONFIG_KEY and config:
+            self._shared_config = config
+        logger.debug('loaded config %s: %s', name, config)
+        return config
+
     def save_config(self, name, config):
+        logger.info('saving "%s" config %s', name, config)
         job = app['scheduler'].spawn(band_config.save_config(name, config))
         asyncio.ensure_future(job)
 
-    async def load_shared_config(self):
-        self._shared_config = await band_config.load_config(SHARED_CONFIG_KEY)
-
-    def save_shared_config(self):
-        self.save_config(SHARED_CONFIG_KEY, self._shared_config)
-
     async def runned_set(self):
         return await band_config.set_get(STARTED_SET)
+
+    async def update_config(self, name, keysvals):
+        config = (await self.load_config(name)) or pdict()
+        for k, v in keysvals.items():
+            target = config
+            path = k.split('.')
+            prop = path.pop()
+            for p in path:
+                target = target[p]
+            if v == '':
+                target.pop(prop, None)
+            else:
+                target[prop] = v
+        self.save_config(name, config)
+        if name == SHARED_CONFIG_KEY:
+            self._shared_config = config
+        return config
 
     async def should_start(self):
         return await band_config.set_get(STARTED_SET)

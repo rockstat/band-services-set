@@ -56,7 +56,7 @@ class BandConfig:
     async def set_rm(self, key, *args):
         await self.__redis_cmd('srem', pset(key), *args)
 
-    async def set_get(self, key):
+    async def set_get(s, key):
         return set(map(decode, await self.__redis_cmd('smembers', pset(key))))
 
     async def configs_list(self):

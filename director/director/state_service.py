@@ -1,4 +1,4 @@
-from prodict import Prodict
+from prodict import Prodict as pdict
 from typing import List, Dict
 from time import time
 from random import randint
@@ -8,13 +8,13 @@ from .helpers import nn, isn, str2bool
 from band import logger, app
 
 
-class MethodRegistration(Prodict):
+class MethodRegistration(pdict):
     method: str
     role: str
     options: Dict
 
 
-class ServiceDashPosition(Prodict):
+class ServiceDashPosition(pdict):
     col: int
     row: int
 
@@ -26,14 +26,14 @@ class ServiceDashPosition(Prodict):
             return f"{self.col}x{self.row}"
 
 
-class ServiceState(Prodict):
-    _meta: Prodict
-    _app: Prodict
+class ServiceState(pdict):
+    _meta: pdict
+    _app: pdict
     _app_ts: int
-    _dock: Prodict
+    _dock: pdict
     _dock_ts: int
     _pos: ServiceDashPosition
-    _build_options: Prodict
+    _build_options: pdict
     _methods: List[MethodRegistration]
     _name: str
     _title: str
@@ -46,20 +46,22 @@ class ServiceState(Prodict):
         super().__init__(*args, **kwargs)
         self._pos = ServiceDashPosition()
         self._manager = manager
-        self._build_options = Prodict()
+        self._build_options = pdict()
+        self._env = pdict()
         self._logs = deque(maxlen=1000)
         self._name = name
         self._title = name.replace('_', ' ').title()
         self.clean_status()
+            
 
     def clean_status(self):
         logger.debug('restoring state of %s', self.name)
-        self._meta = Prodict()
-        self._app = Prodict()
+        self._meta = pdict()
+        self._app = pdict()
         self._app_ts = None
         self._methods = []
         self._status_override = None
-        self._dock = Prodict()
+        self._dock = pdict()
         self._dock_ts = None
         self._methods = []
         self._managed = False
@@ -69,7 +71,8 @@ class ServiceState(Prodict):
 
     @property
     def config(self):
-        return Prodict(pos=self.pos, build_options=self.build_options)
+        return pdict(
+            pos=self.pos, build_options=self.build_options, env=self._env)
 
     def full_state(self):
         docker = self.dockstate
@@ -91,7 +94,7 @@ class ServiceState(Prodict):
             state = STATUS_RUNNING
             uptime = appdata.app_uptime
 
-        return Prodict(
+        return pdict(
             name=self.name,
             uptime=uptime,
             state=self._status_override or state,
@@ -116,10 +119,6 @@ class ServiceState(Prodict):
     @property
     def methods(self):
         return self._methods
-
-    @property
-    def meta(self):
-        return self._meta
 
     @property
     def pos(self):
@@ -155,12 +154,27 @@ class ServiceState(Prodict):
         return self._build_options
 
     def set_build_opts(self, **params):
+        # old env location. moving to root location
+        if 'env' in params:
+            self.set_env(params.pop('env', {}))
+
         self._build_options.update(params)
+
+    @property
+    def env(self):
+        return self._env
+
+    def set_env(self, env):
+        self._env = env
 
     def set_pos(self, col, row):
         if nn(col) and nn(row):
             self._pos.col = col
             self._pos.row = row
+
+    @property
+    def meta(self):
+        return self._meta
 
     def set_meta(self, meta):
         if not meta:
@@ -176,6 +190,7 @@ class ServiceState(Prodict):
     def appstate(self):
         if self._app_ts and time() < self._app_ts + SERVICE_TIMEOUT:
             return self._app
+
     def set_status_override(self, status):
         self._status_override = status
 
@@ -199,7 +214,6 @@ class ServiceState(Prodict):
         if appstate:
             self._app = appstate
             self._app_ts = time()
-            self.save_config()
             if 'register' in appstate:
                 self.set_methods(appstate['register'])
 
@@ -222,5 +236,4 @@ class ServiceState(Prodict):
                     self._native = self.meta.native
 
             if dockstate.running == True:
-                self.save_config()
                 self._dock_ts = time()

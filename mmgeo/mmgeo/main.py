@@ -62,7 +62,7 @@ async def enrich(ip, **params):
             return {}
         raise HTTPServiceUnavailable('Database not ready yet')
     except Exception:
-        logger.exception('mmgeo error')
+        logger.exception('mmgeo error. location: %s', location)
     return {'error': RESULT_INTERNAL_ERROR}
 
 

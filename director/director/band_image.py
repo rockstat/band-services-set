@@ -1,5 +1,5 @@
 import subprocess
-from prodict import Prodict
+from prodict import Prodict as pdict
 from typing import Dict
 
 from .constants import DEF_LABELS
@@ -18,7 +18,7 @@ class BandImageBuilder:
         return self
 
     def struct(self):
-        return Prodict.from_dict({
+        return pdict.from_dict({
             'fileobj': self.p.stdout,
             'encoding': 'identity',
             'tag': self.img.name,
@@ -30,7 +30,7 @@ class BandImageBuilder:
     async def __aexit__(self, exception_type, exception_value, traceback):
         self.p.kill()
 
-class BandImage(Prodict):
+class BandImage(pdict):
     name: str
     path: str
     key: str
@@ -38,8 +38,8 @@ class BandImage(Prodict):
     title: str
     base: str
     p: subprocess.Popen
-    d: Prodict
-    meta: Prodict
+    d: pdict
+    meta: pdict
 
     def __init__(self, *args, **kwargs):
         meta = kwargs.pop('meta', {})
@@ -55,7 +55,7 @@ class BandImage(Prodict):
 
 
     def set_data(self, data):
-        self.d = Prodict.from_dict(data)
+        self.d = pdict.from_dict(data)
         return self
 
     @property

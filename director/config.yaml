@@ -30,6 +30,7 @@ container_params:
   env:
     HOST: '0.0.0.0'
     REDIS_DSN: "{{REDIS_DSN|default('redis://redis:6379')}}"
+    JSON_LOGS: JSON_LOGS={{JSON_LOGS|default(1)}}
   etc_hosts:
     host: "{{HOST_ADDR|default('172.17.0.1')}}"
   

@@ -156,7 +156,7 @@ class DockerManager():
             return img.set_data(await self.dc.images.get(img.name))
 
     async def run_container(self, name, env={}, nocache=False, auto_remove=True, **kwargs):
-        print('--', nocache, kwargs)
+        logger.info('called run container with: %s. nocache: %s, kwargs: %s', env, nocache, kwargs)
         image_options = dict(nocache=nocache)
         container_options = dict(auto_remove=auto_remove)
         

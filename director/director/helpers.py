@@ -1,13 +1,16 @@
 from inflection import underscore
 from prodict import Prodict
 
+
 def nn(arg):
     """ not nil """
     return arg != None
 
+
 def isn(arg):
     """ not nil """
     return arg == None
+
 
 def tar_image_cmd(path):
     return ['tar', '-C', path, '-c', '-X', '.dockerignore', '.']
@@ -44,3 +47,12 @@ def merge(a, b, path=None):
         else:
             a[key] = b[key]
     return a
+
+
+def merge_dicts(*args):
+    if len(args) == 0:
+        return
+    d = args[0]
+    for d2 in args[1:]:
+        d.update(d2)
+    return d

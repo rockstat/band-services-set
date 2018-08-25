@@ -1,6 +1,6 @@
 from asyncio import sleep
 from collections import defaultdict, deque
-from prodict import Prodict
+from prodict import Prodict as pdict
 from time import time
 import asyncio
 import ujson
@@ -10,7 +10,7 @@ from band import settings, dome, rpc, logger, app, run_task
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
 from .structs import ServicePostion
-from .constants import STATUS_RUNNING, STARTED_SET
+from .constants import STATUS_RUNNING, STARTED_SET, SHARED_CONFIG_KEY
 from .helpers import merge, str2bool
 from . import dock, state, image_navigator
 
@@ -48,11 +48,10 @@ async def registrations(**params):
     Method for debug purposes
     """
     return state.registrations()
-    # Iterating over containers and their methods
 
 
 @dome.expose(name=NOTIFY_ALIVE)
-async def sync_status(name, **params):
+async def status_receiver(name, **params):
     """
     Listen for services promotions then ask their statuses.
     It some cases takes payload to reduce calls amount
@@ -66,7 +65,6 @@ async def show(name, **params):
     Returns container details
     """
     container = await dock.get(name)
-    # check container exists
     if not container:
         return 404
     return container and container.full_state()
@@ -80,18 +78,10 @@ async def list_images(**params):
     return await image_navigator.lst()
 
 
-@dome.expose()
-async def list_configs(**params):
+@dome.expose(path='/ask_state/{name}')
+async def ask_state(name, **params):
     """
-    List of saved services configurations
-    """
-    return await state.configs()
-
-
-@dome.expose(path='/status/{name}')
-async def status_call(name, **params):
-    """
-    Ask service status
+    Ask service state
     """
     return await rpc.request(name, REQUEST_STATUS)
 
@@ -110,7 +100,7 @@ async def run(name, **params):
     Create image and run new container with service
     """
 
-    params = Prodict(**params)
+    params = pdict(**params)
 
     if not image_navigator.is_native(name):
         return 404
@@ -118,8 +108,8 @@ async def run(name, **params):
     # Build options
     build_opts = {}
 
-    if 'env' in params:
-        build_opts['env'] = params['env']
+    # if 'env' in params and isinstance(params.env, dict):
+        # build_opts['env'] = params['env']
     if 'nocache' in params:
         build_opts['nocache'] = str2bool(params['nocache'])
     if 'auto_remove' in params:
@@ -128,7 +118,7 @@ async def run(name, **params):
     params['build_options'] = build_opts
 
     # Position on dashboard
-    if 'pos' in params and params.pos:
+    if params.pos:
         params.pos = ServicePostion(*params.pos.split('x'))
 
     # Get / create
@@ -195,3 +185,34 @@ async def remove(name, **params):
         return 404
     svc = await state.remove_service(name, no_wait=True)
     return svc.full_state()
+
+
+"""
+####### Services configuration
+"""
+
+
+@dome.expose()
+async def configs_list(**params):
+    """
+    List of saved services configurations
+    """
+    return await state.configs()
+
+
+@dome.expose(path='/update_config/{name}')
+async def update_config(name, **params):
+    """
+    Updates service configuration.
+    To remove parameter send it with empty value
+    Supported dot notation for example env.TESTVAR=213
+    """
+    return await state.update_config(name, params)
+
+
+@dome.expose(path='/get_config/{name}')
+async def get_config(name, **params):
+    """
+    Returns service config
+    """
+    return await state.load_config(name)
