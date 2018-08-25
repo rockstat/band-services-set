@@ -15,7 +15,7 @@ from .band_config import BandConfig
 from .docker_manager import DockerManager
 from .constants import (STARTED_SET, SERVICE_TIMEOUT, DEFAULT_COL, DEFAULT_ROW,
                         STATUS_RESTARTING, STATUS_REMOVING, STATUS_STARTING,
-                        STATUS_STOPPING)
+                        STATUS_STOPPING, SHARED_CONFIG_KEY)
 from .state_ctx import StateCtx
 from .state_service import ServiceState
 from .image_navigator import ImageNavigator
@@ -32,7 +32,12 @@ class StateManager:
         self.timeout = 30
         self._state = dict()
         self._dock = None
+        self._shared_config = dict()
         self.last_key = ''
+
+    """
+    Class Lifecycle functions
+    """
 
     async def initialize(self):
         await band_config.initialize()
@@ -62,15 +67,38 @@ class StateManager:
                 logger.exception('state initialize')
             await asyncio.sleep(1)
 
+    async def handle_auto_start(self):
+        for item in await self.should_start():
+            svc = await s.get(item)
+            if not svc.is_active() and svc.native:
+                await self.run_service(svc.name)
+            # if not (item in state and ().is_active()):
+            # asyncio.ensure_future(run(item))
+
+    async def unload(self):
+        await band_config.unload()
+        await dock.close()
+
+    """
+    State functions
+    """
+
     @property
     def state(self):
         return self._state
+
+    def values(self):
+        return self._state.values()
 
     def __contains__(self, name):
         return self.is_exists(name)
 
     def is_exists(self, name):
         return name in self._state
+
+    """
+    Container management functions
+    """
 
     async def get(self, name, **kwargs):
         params = kwargs.pop('params', None)
@@ -111,9 +139,6 @@ class StateManager:
             self._state[name].set_pos(**pos)
         return self._state[name]
 
-    async def _init_service(self, name):
-        pass
-
     async def run_service(self, name, no_wait=False):
         svc = await self.get(name)
         svc.clean_status()
@@ -135,6 +160,11 @@ class StateManager:
         coro = self._do_remove_service(name)
         await (app['scheduler'].spawn(coro) if no_wait else coro)
         return svc
+
+    async def _do_remove_service(self, name):
+        svc = await self.get(name)
+        await dock.remove_container(name)
+        svc.clean_status()
 
     async def stop_service(self, name, no_wait=False):
         svc = await self.get(name)
@@ -163,11 +193,6 @@ class StateManager:
         await dock.start_container(name)
         svc.clean_status()
 
-    async def _do_remove_service(self, name):
-        svc = await self.get(name)
-        await dock.remove_container(name)
-        svc.clean_status()
-
     async def restart_service(self, name, no_wait=False):
         svc = await self.get(name)
         svc.set_status_override(STATUS_RESTARTING)
@@ -184,6 +209,10 @@ class StateManager:
             svc.clean_status()
             await self.check_regs_changed()
 
+    """
+    State functions
+    """
+
     async def resolve_docstatus(self, name):
         svc = await self.get(name)
         container = await dock.get(name)
@@ -194,70 +223,8 @@ class StateManager:
         for container in await dock.containers(struct=list):
             await self.resolve_docstatus(container.name)
 
-    def save_config(self, name, config):
-        job = app['scheduler'].spawn(band_config.save_config(name, config))
-        asyncio.ensure_future(job)
-
-    def values(self):
-        return self._state.values()
-
-    def _occupied(self, exclude=None):
-        """
-        Building list of occupied positions
-        """
-        occupied = []
-        for srv in self._state.values():
-            if srv.name != exclude and nn(srv.pos.col) and nn(srv.pos.row):
-                occupied.append(srv.pos.to_s())
-        return occupied
-
-    def _allocate(self, name, col, row):
-        """
-        Allocating dashboard position for container close to wanted
-        """
-        logger.debug(f'{name} pos: wanted {col}x{row}')
-        occupied = self._occupied(exclude=name)
-        logger.debug(f'occupied positions: {occupied}')
-        for icol, irow in self._space_walk(int(col), int(row)):
-            logger.debug(f'> checking {icol}x{irow}')
-            key = f"{icol}x{irow}"
-            if key not in occupied:
-                return dict(col=icol, row=irow)
-
-    def _space_walk(self, scol=0, srow=0):
-        """
-        Generator over all pissible postions starting from specified location
-        """
-        srow = int(srow)
-        scol = int(scol)
-        # first part
-        for rowi in range(srow, self.rows):
-            for coli in range(scol, self.cols):
-                yield coli, rowi
-        # back side
-        for rowi in range(0, srow):
-            for coli in range(0, scol):
-                yield coli, rowi
-
     async def clean_status(self, name):
         (await self.get(name)).clean_status()
-
-    async def runned_set(self):
-        return await band_config.set_get(STARTED_SET)
-
-    async def configs(self):
-        return await band_config.configs_list()
-
-    async def should_start(self):
-        return await band_config.set_get(STARTED_SET)
-
-    async def handle_auto_start(self):
-        for item in await self.should_start():
-            svc = await s.get(item)
-            if not svc.is_active() and svc.native:
-                await self.run_service(svc.name)
-            # if not (item in state and ().is_active()):
-            # asyncio.ensure_future(run(item))
 
     async def request_app_state(self, name):
         svc = await self.get(name)
@@ -289,6 +256,67 @@ class StateManager:
     def clean_ctx(self, name, coro):
         return StateCtx(self, name, coro)
 
-    async def unload(self):
-        await band_config.unload()
-        await dock.close()
+    """
+    Config store functions
+    """
+
+    async def configs(self):
+        return await band_config.configs_list()
+
+    def save_config(self, name, config):
+        job = app['scheduler'].spawn(band_config.save_config(name, config))
+        asyncio.ensure_future(job)
+
+    async def load_shared_config(self):
+        self._shared_config = await band_config.load_config(SHARED_CONFIG_KEY)
+
+    def save_shared_config(self):
+        self.save_config(SHARED_CONFIG_KEY, self._shared_config)
+
+    async def runned_set(self):
+        return await band_config.set_get(STARTED_SET)
+
+    async def should_start(self):
+        return await band_config.set_get(STARTED_SET)
+
+    """
+    Dashboard tile
+    """
+
+    def _allocate(self, name, col, row):
+        """
+        Allocating dashboard position for container close to wanted
+        """
+        logger.debug(f'{name} pos: wanted {col}x{row}')
+        occupied = self._occupied(exclude=name)
+        logger.debug(f'occupied positions: {occupied}')
+        for icol, irow in self._space_walk(int(col), int(row)):
+            logger.debug(f'> checking {icol}x{irow}')
+            key = f"{icol}x{irow}"
+            if key not in occupied:
+                return dict(col=icol, row=irow)
+
+    def _occupied(self, exclude=None):
+        """
+        Building list of occupied positions
+        """
+        occupied = []
+        for srv in self._state.values():
+            if srv.name != exclude and nn(srv.pos.col) and nn(srv.pos.row):
+                occupied.append(srv.pos.to_s())
+        return occupied
+
+    def _space_walk(self, scol=0, srow=0):
+        """
+        Generator over all pissible postions starting from specified location
+        """
+        srow = int(srow)
+        scol = int(scol)
+        # first part
+        for rowi in range(srow, self.rows):
+            for coli in range(scol, self.cols):
+                yield coli, rowi
+        # back side
+        for rowi in range(0, srow):
+            for coli in range(0, scol):
+                yield coli, rowi
