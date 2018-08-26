@@ -8,15 +8,15 @@ data_dir: "{{DATA_DIR|default('/data')}}"
 default_services: ['mmgeo', 'sxgeo', 'uaparser']
 
 images:
-  - name: rst/band-base-py
-    path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base_py')}}"
+  # - name: rst/band-base-py
+  #   path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base_py')}}"
   - prefix: rst/band-
     collection: true
-    base: rst/band-base-py
+    base: madiedinro/band-base-py
     path: "{{IMAGES_PATH}}/band_set"
   - prefix: rst/user-
     collection: true
-    base: rst/band-base-py
+    base: madiedinro/band-base-py
     path: "{{IMAGES_PATH}}/user"
   - prefix: rst/rockme-
     collection: true

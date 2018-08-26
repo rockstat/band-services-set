@@ -1,4 +1,4 @@
-FROM rst/band-base-py
+FROM madiedinro/band-base-py
 WORKDIR /usr/src/services
 
 ENV HOST=0.0.0.0

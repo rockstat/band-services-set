@@ -162,9 +162,9 @@ class DockerManager():
         
         service_img = self.image_navigator[name]
         # rebuild base image if present
-        if service_img.base:
-            base_img = self.image_navigator[service_img.base]
-            await self.create_image(base_img, image_options)
+        # if service_img.base:
+        #     base_img = self.image_navigator[service_img.base]
+        #     await self.create_image(base_img, image_options)
         #creating service image
         await self.create_image(service_img, image_options)
         await self.remove_container(name)

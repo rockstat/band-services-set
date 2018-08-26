@@ -16,18 +16,12 @@ Contains collection of Rockstat depended services and some examples
     packages=[
         'band.mmgeo',
         'band.sxgeo',
-        'band.api_gateway',
-        'band.proxycheck',
+        'band.uaparser',
         'band.tg_hellobot',
         'band.send_mixpanel',
-
     ],
     url='https://github.com/rockstat',
     include_package_data=True,
-    # extras_require={
-    #     'dev': ['check-manifest'],
-    #     'test': ['coverage'],
-    # },
     zip_safe=False,
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -36,13 +30,7 @@ Contains collection of Rockstat depended services and some examples
         'Programming Language :: Python :: 3.6',
     ],
     project_urls={  # Optional
-        'Homepage': 'https://rockstat.ru',
-        'Docs': 'https://rockstat.ru/docs'
-    },
-
-    entry_points={
-        'console_scripts': [
-            'mmgeo = mmgeo.__main__:main'
-        ]
-    },
+        'Homepage': 'https://rstat.org',
+        'Docs': 'https://rstat.org/docs'
+    }
 )

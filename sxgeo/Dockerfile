@@ -1,4 +1,4 @@
-FROM rst/band-base-py
+FROM madiedinro/band-base-py
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
 
 WORKDIR /usr/src/services
