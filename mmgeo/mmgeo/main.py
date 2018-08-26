@@ -6,7 +6,6 @@ from prodict import Prodict
 from async_lru import alru_cache
 from aiohttp.web_exceptions import HTTPServiceUnavailable
 from transliterate import translit
-
 """
 Library docs: https://github.com/maxmind/MaxMind-DB-Reader-python
 
@@ -14,14 +13,18 @@ For better performance you cat install C version of lib
 https://github.com/maxmind/libmaxminddb
 """
 
+
 class MMGState(Prodict):
     db: object
     ready: bool
 
+
 state = MMGState(db=None, ready=False)
+
 
 def en_to_ru(text):
     return translit('Epanomi', 'ru')
+
 
 @dome.tasks.add
 async def download_db():
@@ -46,11 +49,15 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
         result.country_iso = country['iso_code']
     if city and 'names' in city:
         result.city_en = city['names']['en']
-        result.city_ru = city['names']['ru'] if 'ru' in city['names'] else en_to_ru(city['names']['en'])
+        result.city_ru = (city['names']['ru']
+                          if 'ru' in city['names'] else en_to_ru(
+                              city['names']['en']))
     if subdivisions and len(subdivisions) > 0:
         region = subdivisions[0]
         result.region_en = region['names']['en']
-        result.region_ru = region['names']['ru'] if 'ru' in region['names'] else en_to_ru(region['names']['en'])
+        result.region_ru = (region['names']['ru']
+                            if 'ru' in region['names'] else en_to_ru(
+                                region['names']['en']))
         result.region_iso = region['iso_code']
     return result
 
