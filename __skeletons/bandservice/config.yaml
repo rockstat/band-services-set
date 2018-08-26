@@ -4,6 +4,6 @@ name: bandservice
 env: {{ ENV }}
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT|default(8080)}}"
 redis_dsn: "{{REDIS_DSN|default('redis://redis:6379')}}"
-ch_dsn: "{{CH_DSN|default('http://default:default@host:9090')}}"
+ch_dsn: "{{CHP_DSN|default('http://default:default@host:9090')}}"
 # you can default you own config parameters
 myvar: myval
