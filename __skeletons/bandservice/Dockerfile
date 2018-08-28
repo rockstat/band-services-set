@@ -1,4 +1,4 @@
-FROM madiedinro/band-base-py
+FROM rockstat/band-base-py
 WORKDIR /usr/src/services
 
 ENV HOST=0.0.0.0

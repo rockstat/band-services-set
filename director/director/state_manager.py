@@ -1,5 +1,4 @@
 from prodict import Prodict as pdict
-from band import logger
 from .helpers import nn, isn, str2bool, merge_dicts
 import ujson
 import asyncio
@@ -8,7 +7,7 @@ from collections import defaultdict
 from itertools import count
 from copy import deepcopy
 
-from band import settings, rpc, app
+from band import logger, settings, rpc, app
 from band.constants import (NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE,
                             DIRECTOR_SERVICE)
 
@@ -37,7 +36,7 @@ class StateManager:
         self.last_key = ''
 
     """
-    Class Lifecycle functions
+    Lifecycle functions
     """
 
     async def initialize(self):
@@ -49,25 +48,33 @@ class StateManager:
         started_present = await band_config.set_exists(STARTED_SET)
         if not started_present:
             await band_config.set_add(STARTED_SET, *settings.default_services)
+
         """
         Onstart tasks: loaders, readers, etc...
         """
+
         # starting config
         # looking for containers to request status
         for container in await dock.containers(struct=list):
             if container.running and container.native:
                 await app['scheduler'].spawn(
                     self.request_app_state(container.name))
-
+        
+        # clean state
+        await app['scheduler'].spawn(self.clean_worker())
+        
+    async def clean_worker(self):
         for num in count():
             # Remove expired services
             try:
                 await asyncio.sleep(5)
                 await self.resolve_docstatus_all()
                 await self.check_regs_changed()
+            except asyncio.CancelledError:
+                break
             except Exception:
                 logger.exception('state initialize')
-            await asyncio.sleep(1)
+                await asyncio.sleep(1)
 
     async def handle_auto_start(self):
         for item in await self.should_start():
@@ -118,7 +125,7 @@ class StateManager:
             if meta and meta.env:
                 envs.append(meta.env)
 
-            if config.env:
+            if config and config.env:
                 envs.append(config.env)
 
             svc = ServiceState(name=name, manager=self)
@@ -147,7 +154,7 @@ class StateManager:
 
         if len(envs):
             svc.set_env(merge_dicts(*envs))
-        
+
         if params.build_options:
             svc.set_build_opts(**params['build_options'])
 

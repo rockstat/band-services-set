@@ -12,11 +12,11 @@ images:
   #   path: "{{BASE_IMG_PATH|default(IMAGES_PATH+'/band_base_py')}}"
   - prefix: rst/band-
     collection: true
-    base: madiedinro/band-base-py
+    base: rockstat/band-base-py
     path: "{{IMAGES_PATH}}/band_set"
   - prefix: rst/user-
     collection: true
-    base: madiedinro/band-base-py
+    base: rockstat/band-base-py
     path: "{{IMAGES_PATH}}/user"
   - prefix: rst/rockme-
     collection: true

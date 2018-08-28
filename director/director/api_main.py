@@ -6,7 +6,7 @@ import asyncio
 import ujson
 import copy
 
-from band import settings, dome, rpc, logger, app, run_task
+from band import settings, dome, rpc, logger, app, run_task, expose
 from band.constants import NOTIFY_ALIVE, REQUEST_STATUS, OK, FRONTIER_SERVICE, DIRECTOR_SERVICE
 
 from .structs import ServicePostion
@@ -17,7 +17,7 @@ from . import dock, state, image_navigator
 from pprint import pprint
 
 
-@dome.expose(path='/state')
+@expose(path='/state')
 async def get_state(name=None, prop=None):
     """
     Get list of services in state or get state of specified service
@@ -32,7 +32,7 @@ async def get_state(name=None, prop=None):
     return list(state.state.keys())
 
 
-@dome.expose(name='list')
+@expose(name='list')
 async def lst(**params):
     """
     Containers list with status information
@@ -41,7 +41,7 @@ async def lst(**params):
         [fs for fs in [s.full_state() for s in state.values()] if fs.state])
 
 
-@dome.expose()
+@expose()
 async def registrations(**params):
     """
     Provide global RPC registrations information
