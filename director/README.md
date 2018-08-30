@@ -1,7 +1,0 @@
-# RST Director
-
-## Running
-
-## API
-
-
