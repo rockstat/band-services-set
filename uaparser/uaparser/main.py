@@ -35,7 +35,8 @@ async def enrich(ua, **params):
             device_brand=parsed.device.brand,
             device_model=parsed.device.model)
         res.is_bot = int(parsed.is_bot)
-        res.is_mob = int(parsed.is_mobile or parsed.is_tablet)
+        res.is_tables = int(parsed.is_tablet)
+        res.is_mob = int(parsed.is_mobile)
         res.is_pc = int(parsed.is_pc)
         return res
     except Exception:
