@@ -1,44 +1,51 @@
 import subprocess
 import os.path
 import maxminddb
-from band import dome, logger, settings, RESULT_INTERNAL_ERROR, RESULT_NOT_LOADED_YET
-from prodict import Prodict
+from band import expose, worker, logger, settings, RESULT_INTERNAL_ERROR, RESULT_NOT_LOADED_YET
+from prodict import Prodict as pdict
 from async_lru import alru_cache
 from aiohttp.web_exceptions import HTTPServiceUnavailable
 from transliterate import translit
+
+
 """
 Library docs: https://github.com/maxmind/MaxMind-DB-Reader-python
-
 For better performance you cat install C version of lib
 https://github.com/maxmind/libmaxminddb
 """
 
-
-class MMGState(Prodict):
-    db: object
-    ready: bool
+state = pdict(db=None)
 
 
-state = MMGState(db=None, ready=False)
-
-
-def en_to_ru(text):
-    return translit('Epanomi', 'ru')
-
-
-@dome.tasks.add
-async def download_db():
+@worker()
+async def open_db():
     try:
-        if not os.path.isfile(settings.db_file):
-            logger.info('downloading database. cmd: %s', settings.get_cmd)
-            out = subprocess.call(settings.get_cmd, shell=True)
-            logger.info('download result %s', out)
-            out = subprocess.call(settings.extract_cmd, shell=True)
-            logger.info('extract result %s', out)
-        state.db = maxminddb.open_database(settings.db_file)
-        state.ready = True
+        if os.path.isfile(settings.db_file):
+            state.db = maxminddb.open_database(settings.db_file)
     except Exception:
-        logger.exception('download err')
+        logger.exception('db open err')
+    logger.error('database file not found!')
+    exit(1)
+
+
+@expose()
+async def cache_info():
+    return enrich.cache_info()
+
+
+@expose.enricher(keys=['in.gen.track'], props=dict(ip='td.ip'))
+@alru_cache(maxsize=512)
+async def enrich(ip, **params):
+    try:
+        if state.db:
+            location = state.db.get(ip)
+            if location:
+                return handle_location(**location)
+            return {}
+        raise HTTPServiceUnavailable('Database not ready yet')
+    except Exception:
+        logger.exception('mmgeo error.', location=location)
+    return {'error': RESULT_INTERNAL_ERROR}
 
 
 def handle_location(city=None, country=None, subdivisions=None, **kwargs):
@@ -62,24 +69,8 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
     return result
 
 
-@dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ip='td.ip'))
-@alru_cache(maxsize=512)
-async def enrich(ip, **params):
-    try:
-        if state.ready == True and state.db:
-            location = state.db.get(ip)
-            if location:
-                return handle_location(**location)
-            return {}
-        raise HTTPServiceUnavailable('Database not ready yet')
-    except Exception:
-        logger.exception('mmgeo error. location: %s', location)
-    return {'error': RESULT_INTERNAL_ERROR}
-
-
-@dome.expose()
-async def cache_info():
-    return enrich.cache_info()
+def en_to_ru(text):
+    return translit('Epanomi', 'ru')
 
 
 """

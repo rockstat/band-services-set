@@ -16,16 +16,16 @@ async def startup():
     """
     try:
         if not os.path.isfile(settings.db_file):
-            logger.info('downloading database. cmd: %s', settings.get_cmd)
+            logger.info('downloading database', cmd=settings.get_cmd)
             out = subprocess.call(settings.get_cmd, shell=True)
-            logger.info('download result %s', out)
+            logger.info('download result', out=out)
             out = subprocess.call(settings.extract_cmd, shell=True)
-            logger.info('extract result %s', out)
+            logger.info('extract result', out=out)
         gl = state.geodata = GeoLocator(settings.db_file,
                                         MODE_BATCH | MODE_MEMORY)
         state.ready = True
-        logger.info('DB version %s (%s)', gl.get_db_version(),
-                    gl.get_db_date())
+        logger.info('DB version', dbver=gl.get_db_version(),
+                    dbdate=gl.get_db_date())
     except Exception:
         logger.exception('download err')
 

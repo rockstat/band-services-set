@@ -33,7 +33,7 @@ def prefixer(dd, prefix=settings.prefix):
     return {prefix + k: v
             for k, v in dd.items()} if isinstance(dd, dict) else {
                 prefix: dd
-            }
+    }
 
 
 class CopyClear:
@@ -95,8 +95,8 @@ async def uploader():
                         })
                         async with session.post(
                                 settings.endpoint, data=q) as resp:
-                            logger.info('uploading %s items. Status: %s',
-                                        len(batch), resp.status)
+                            logger.info('uploading', items=len(
+                                batch), status=resp.status)
                     await asyncio.sleep(1)
             pass
         except asyncio.CancelledError:

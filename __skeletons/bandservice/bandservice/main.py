@@ -64,7 +64,7 @@ async def worker():
         # next day, 03:10
         next_at = arrow.utcnow().shift(hours=+1)
         wait_secs = next_at.timestamp - arrow.utcnow().timestamp
-        logger.debug("waiting %s seconds", wait_secs)
+        logger.debug("waiting", seconds=wait_secs)
         await asyncio.sleep(wait_secs)
 
 
