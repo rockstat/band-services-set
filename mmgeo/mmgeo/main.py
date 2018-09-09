@@ -19,14 +19,14 @@ state = pdict(db=None)
 
 @worker()
 async def open_db():
+    logger.info()
     try:
-        if os.path.isfile(settings.db_file):
-            state.db = maxminddb.open_database(settings.db_file)
+        if not os.path.isfile(settings.db_file):
+            raise FileNotFoundError("db file not found")
+        state.db = maxminddb.open_database(settings.db_file)
     except Exception:
-        logger.exception('db open err')
     logger.error('database file not found!')
-    exit(1)
-
+        logger.exception('error while opening database file')
 
 @expose()
 async def cache_info():
@@ -70,7 +70,7 @@ def handle_location(city=None, country=None, subdivisions=None, **kwargs):
 
 
 def en_to_ru(text):
-    return translit('Epanomi', 'ru')
+    return translit(text, 'ru')
 
 
 """
