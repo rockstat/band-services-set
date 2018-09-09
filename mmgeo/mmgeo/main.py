@@ -25,7 +25,6 @@ async def open_db():
             raise FileNotFoundError("db file not found")
         state.db = maxminddb.open_database(settings.db_file)
     except Exception:
-    logger.error('database file not found!')
         logger.exception('error while opening database file')
 
 @expose()
