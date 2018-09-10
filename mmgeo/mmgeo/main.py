@@ -1,7 +1,7 @@
 import subprocess
 import os.path
 import maxminddb
-from band import expose, worker, logger, settings, RESULT_INTERNAL_ERROR, error_response
+from band import expose, worker, logger, settings, response
 from prodict import Prodict as pdict
 from async_lru import alru_cache
 from aiohttp.web_exceptions import HTTPServiceUnavailable
@@ -40,10 +40,10 @@ async def enrich(ip, **params):
             if location:
                 return handle_location(**location)
             return {}
-        raise HTTPServiceUnavailable('Database not ready yet')
+        raise HTTPServiceUnavailable()
     except Exception:
         logger.exception('mmgeo error.', location=location)
-    return error_response("Internal error", RESULT_INTERNAL_ERROR)
+        return response.error()
 
 
 def handle_location(city=None, country=None, subdivisions=None, **kwargs):

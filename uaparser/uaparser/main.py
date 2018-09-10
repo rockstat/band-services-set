@@ -1,4 +1,4 @@
-from band import dome, logger, settings, error_response RESULT_INTERNAL_ERROR
+from band import expose, logger, settings, response RESULT_INTERNAL_ERROR
 from prodict import Prodict
 from async_lru import alru_cache
 from user_agents import parse
@@ -17,7 +17,7 @@ def crop(os=None, browser=None, device=None, **kwargs):
     return result
 
 
-@dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ua='td.ua'))
+@expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ua='td.ua'))
 @alru_cache(maxsize=512)
 async def enrich(ua, **params):
     """
@@ -43,9 +43,9 @@ async def enrich(ua, **params):
         return res
     except Exception:
         logger.exception('handle ex')
-        return error_response()
+        return response.error()
 
 
-@dome.expose()
+@expose()
 async def cache_info():
     return enrich.cache_info()

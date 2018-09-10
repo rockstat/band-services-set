@@ -1,4 +1,4 @@
-from band import dome, settings
+from band import expose, settings
 
 """
 Useful links:
@@ -7,11 +7,11 @@ https://habr.com/post/322078/
 
 set_wh_url = f"https://api.telegram.org/bot{settings.token}/sendMessage"
 
-@dome.expose(role=dome.HANDLER)
+@expose(role=dome.HANDLER)
 async def send(data,**params):
     pass
 
-@dome.expose(role=dome.HANDLER)
+@expose(role=dome.HANDLER)
 async def main(data, **params):
     if 'message' in data and 'new_chat_member' in data['message']:
         member = data['message']['new_chat_member']

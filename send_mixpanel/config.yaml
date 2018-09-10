@@ -7,5 +7,3 @@ redis_params:
 mixpanel_token: "{{MIXPANEL_TOKEN}}"
 mixpanel_api_secret: "{{MIXPANEL_API_SECRET}}"
 endpoint: 'http://api.mixpanel.com/track/'
-separator: "."
-prefix: "_"

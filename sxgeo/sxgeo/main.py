@@ -1,4 +1,4 @@
-from band import dome, logger, settings, worker, error_response
+from band import dome, logger, settings, worker, response
 from pysyge.pysyge import GeoLocator, MODE_BATCH, MODE_MEMORY
 from prodict import Prodict
 import subprocess
@@ -49,10 +49,10 @@ async def enrich(ip, **params):
             location = state.geodata.get_location(ip, detailed=True)
             if location and 'info' in location:
                 return handle_location(**Prodict.from_dict(location['info']))
-            return error_response('Database not ready')
+            return response.error('Database not ready')
         except Exception:
             logger.exception('mmgeo error')
-            return error_response('Error while quering database')
+            return response.error('Error while quering database')
 
 
 @dome.expose()

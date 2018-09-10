@@ -6,7 +6,7 @@ import base64
 from time import time
 import ujson
 import urllib
-from band import dome, logger, settings, app
+from band import logger, settings, app, expose, worker
 from prodict import Prodict
 from typing import List
 """
@@ -19,7 +19,7 @@ https://docs.aiohttp.org/en/stable/client.html
 """
 
 
-def flatten_dict(dd, separator=settings.separator, prefix=''):
+def flatten_dict(dd, separator='.', prefix=''):
     return {
         prefix + separator + k if prefix else k: v
         for kk, vv in dd.items()
@@ -29,7 +29,7 @@ def flatten_dict(dd, separator=settings.separator, prefix=''):
     }
 
 
-def prefixer(dd, prefix=settings.prefix):
+def prefixer(dd, prefix='_'):
     return {prefix + k: v
             for k, v in dd.items()} if isinstance(dd, dict) else {
                 prefix: dd
@@ -75,12 +75,12 @@ class State(dict):
 state = State()
 
 
-@dome.expose(role=dome.LISTENER)
+@expose(role=dome.LISTENER)
 async def broadcast(**params):
     state.add_item(params)
 
 
-@dome.tasks.add
+@worker()
 async def uploader():
     while True:
         try:
