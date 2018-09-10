@@ -1,4 +1,4 @@
-from band import dome, logger, settings, RESULT_INTERNAL_ERROR
+from band import dome, logger, settings, error_response RESULT_INTERNAL_ERROR
 from prodict import Prodict
 from async_lru import alru_cache
 from user_agents import parse
@@ -28,9 +28,11 @@ async def enrich(ua, **params):
         parsed = parse(ua)
         res = Prodict(
             os_family=parsed.os.family,
-            os_version=list(v if isinstance(v, int) else 0 for v in parsed.os.version),
+            os_version=list(v if isinstance(v, int)
+                            else 0 for v in parsed.os.version),
             browser_family=parsed.browser.family,
-            browser_version=list(v if isinstance(v, int) else 0 for v in parsed.browser.version,),
+            browser_version=list(v if isinstance(
+                v, int) else 0 for v in parsed.browser.version,),
             device_family=parsed.device.family,
             device_brand=parsed.device.brand,
             device_model=parsed.device.model)
@@ -41,28 +43,9 @@ async def enrich(ua, **params):
         return res
     except Exception:
         logger.exception('handle ex')
-    return {'error': RESULT_INTERNAL_ERROR}
+        return error_response()
 
 
 @dome.expose()
 async def cache_info():
     return enrich.cache_info()
-
-
-# @dome.tasks.add
-# async def startup():
-#     """
-#     Startup
-#     """
-#     try:
-#         await sleep(100500)
-#         pass
-
-#     except Exception:
-#         logger.exception('startup err')
-"""
-Full struct
------------
-see at https://github.com/selwin/python-user-agents/blob/master/user_agents/parsers.py
-
-"""

@@ -1,7 +1,7 @@
 import asyncio
 import arrow
 from itertools import count
-from band import settings, logger, expose, pixel, redirect, error
+from band import settings, logger, expose, pixel_response, redirect_response, error_response
 
 
 @expose.handler()
@@ -16,9 +16,9 @@ async def test2(**params):
 @expose.handler()
 async def pix(**params):
     print(params)
-    return pixel()
+    return pixel_response()
 
 
 @expose.handler()
 async def red(**params):
-    return redirect('https://ya.ru')
+    return redirect_response('https://ya.ru')

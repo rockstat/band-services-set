@@ -7,17 +7,6 @@ https://habr.com/post/322078/
 
 set_wh_url = f"https://api.telegram.org/bot{settings.token}/sendMessage"
 
-
-async def do_query(url, params):
-    try:
-        async with aiohttp.ClientSession() as s:
-            async with s.get(url, timeout=10, params=params) as r:
-                return await r.json()
-    except Exception:
-        logger.exception('err')
-    return RESULT_INTERNAL_ERROR
-
-
 @dome.expose(role=dome.HANDLER)
 async def send(data,**params):
     pass
@@ -35,3 +24,4 @@ async def main(data, **params):
             'chat_id': chat['id'],
             'text': 'Привет, {}!\nРасскажи немного о себе с хештегом #me.'.format(name)
         }
+    return {}

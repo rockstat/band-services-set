@@ -1,4 +1,4 @@
-from band import dome, logger, settings, RESULT_INTERNAL_ERROR
+from band import dome, logger, settings, worker, error_response RESULT_INTERNAL_ERROR
 from pysyge.pysyge import GeoLocator, MODE_BATCH, MODE_MEMORY
 from prodict import Prodict
 import subprocess
@@ -9,7 +9,7 @@ from aiohttp.web_exceptions import HTTPInternalServerError, HTTPNoContent
 state = Prodict(geodata=None, ready=False)
 
 
-@dome.tasks.add
+@worker
 async def startup():
     """
     Load database on startup
@@ -49,11 +49,10 @@ async def enrich(ip, **params):
             location = state.geodata.get_location(ip, detailed=True)
             if location and 'info' in location:
                 return handle_location(**Prodict.from_dict(location['info']))
+            return error_response('Database not ready')
         except Exception:
             logger.exception('mmgeo error')
-            raise HTTPInternalServerError(
-                reason='Error while quering database')
-    return {}
+            return error_response('Error while quering database')
 
 
 @dome.expose()
