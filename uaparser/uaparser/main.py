@@ -1,4 +1,4 @@
-from band import expose, logger, settings, response RESULT_INTERNAL_ERROR
+from band import logger, settings, response, expose
 from prodict import Prodict
 from async_lru import alru_cache
 from user_agents import parse
@@ -17,7 +17,7 @@ def crop(os=None, browser=None, device=None, **kwargs):
     return result
 
 
-@expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ua='td.ua'))
+@expose.enricher(keys=['in.gen.track'], props=dict(ua='td.ua'))
 @alru_cache(maxsize=512)
 async def enrich(ua, **params):
     """

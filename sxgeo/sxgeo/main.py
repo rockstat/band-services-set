@@ -1,4 +1,4 @@
-from band import dome, logger, settings, worker, response
+from band import expose, logger, settings, worker, response
 from pysyge.pysyge import GeoLocator, MODE_BATCH, MODE_MEMORY
 from prodict import Prodict
 import subprocess
@@ -9,7 +9,7 @@ from aiohttp.web_exceptions import HTTPInternalServerError, HTTPNoContent
 state = Prodict(geodata=None, ready=False)
 
 
-@worker
+@worker()
 async def startup():
     """
     Load database on startup
@@ -41,7 +41,7 @@ def handle_location(city=None, country=None, region=None, **kwargs):
     return result
 
 
-@dome.expose(role=dome.ENRICHER, keys=['in.gen.track'], props=dict(ip='td.ip'))
+@expose.enricher(keys=['in.gen.track'], props=dict(ip='td.ip'))
 @alru_cache(maxsize=512)
 async def enrich(ip, **params):
     if state.ready:
@@ -55,7 +55,7 @@ async def enrich(ip, **params):
             return response.error('Error while quering database')
 
 
-@dome.expose()
+@expose()
 async def cache_info():
     return enrich.cache_info()
 
