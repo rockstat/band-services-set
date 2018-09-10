@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE ${PORT}
 COPY . .
 
-RUN mkdir -p data && \
+RUN mkdir -p data \
     && wget -q -O ./data/sxgdb.zip http://sypexgeo.net/files/SxGeoCityMax_utf8.zip \
     && unzip -o ./data/sxgdb.zip -d ./data
 
