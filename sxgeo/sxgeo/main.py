@@ -1,4 +1,4 @@
-from band import dome, logger, settings, worker, error_response RESULT_INTERNAL_ERROR
+from band import dome, logger, settings, worker, error_response
 from pysyge.pysyge import GeoLocator, MODE_BATCH, MODE_MEMORY
 from prodict import Prodict
 import subprocess
