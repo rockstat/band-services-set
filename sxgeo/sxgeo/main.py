@@ -12,22 +12,17 @@ state = Prodict(geodata=None, ready=False)
 @dome.tasks.add
 async def startup():
     """
-    Download fresh database on startup
+    Load database on startup
     """
     try:
         if not os.path.isfile(settings.db_file):
-            logger.info('downloading database', cmd=settings.get_cmd)
-            out = subprocess.call(settings.get_cmd, shell=True)
-            logger.info('download result', out=out)
-            out = subprocess.call(settings.extract_cmd, shell=True)
-            logger.info('extract result', out=out)
-        gl = state.geodata = GeoLocator(settings.db_file,
-                                        MODE_BATCH | MODE_MEMORY)
-        state.ready = True
-        logger.info('DB version', dbver=gl.get_db_version(),
-                    dbdate=gl.get_db_date())
+            raise FileNotFoundError("db file not found")
+        state.geodata = GeoLocator(settings.db_file,
+                                   MODE_BATCH | MODE_MEMORY)
+        logger.info('DB version', dbver=state.geodata.get_db_version(),
+                    dbdate=state.geodata.get_db_date())
     except Exception:
-        logger.exception('download err')
+        logger.exception('error while opening database file')
 
 
 def handle_location(city=None, country=None, region=None, **kwargs):

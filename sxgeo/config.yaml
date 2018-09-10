@@ -7,5 +7,4 @@ redis_params:
   listen_enrich: yes
   
 db_file: ./data/SxGeoCity.dat
-get_cmd: wget -q -O ./data/sxgdb.zip http://sypexgeo.net/files/SxGeoCityMax_utf8.zip
-extract_cmd: unzip -o ./data/sxgdb.zip -d ./data
+
