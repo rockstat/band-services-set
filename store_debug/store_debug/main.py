@@ -5,7 +5,7 @@ from band import logger, expose
 Listen events and write to output
 """
 
-@expose.handler()
+@expose.listener()
 async def broadcast(**params):
     print(params)
 
