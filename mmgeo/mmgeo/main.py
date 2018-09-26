@@ -23,6 +23,7 @@ async def open_db():
         if not os.path.isfile(settings.db_file):
             raise FileNotFoundError("db file not found")
         state.db = maxminddb.open_database(settings.db_file)
+        logger.info('DB loaded')
     except Exception:
         logger.exception('error while opening database file')
 
@@ -47,7 +48,7 @@ async def enrich(ip, **params):
 
 
 def handle_location(city=None, country=None, subdivisions=None, **kwargs):
-    result = Prodict()
+    result = pdict()
     if country:
         result.country_en = country['names']['en']
         result.country_ru = country['names']['ru']

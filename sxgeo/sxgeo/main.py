@@ -1,12 +1,12 @@
 from band import expose, logger, settings, worker, response
 from pysyge.pysyge import GeoLocator, MODE_BATCH, MODE_MEMORY
-from prodict import Prodict
+from prodict import Prodict as pdict
 import subprocess
 import os
 from async_lru import alru_cache
 from aiohttp.web_exceptions import HTTPInternalServerError, HTTPNoContent
 
-state = Prodict(geodata=None, ready=False)
+state = pdict(geodata=None)
 
 
 @worker()
@@ -26,7 +26,7 @@ async def startup():
 
 
 def handle_location(city=None, country=None, region=None, **kwargs):
-    result = Prodict()
+    result = pdict()
     if country:
         result.country_en = str(country['name_en'])
         result.country_ru = str(country['name_ru'])
@@ -44,11 +44,11 @@ def handle_location(city=None, country=None, region=None, **kwargs):
 @expose.enricher(keys=['in.gen.track'], props=dict(ip='td.ip'))
 @alru_cache(maxsize=512)
 async def enrich(ip, **params):
-    if state.ready:
+    if state.geodata:
         try:
             location = state.geodata.get_location(ip, detailed=True)
             if location and 'info' in location:
-                return handle_location(**Prodict.from_dict(location['info']))
+                return handle_location(**pdict.from_dict(location['info']))
             return response.error('Database not ready')
         except Exception:
             logger.exception('mmgeo error')
