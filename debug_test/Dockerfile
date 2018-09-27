@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE ${PORT}
 COPY . .
 
-CMD [ "python", "-m", "badboy"]
+CMD [ "python", "-m", "debug_test"]

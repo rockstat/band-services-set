@@ -1,5 +1,5 @@
 # set name of your service
-name: badboy
+name: debug_test
 # default paramenters
 env: {{ ENV }}
 listen: "{{HOST|default('0.0.0.0')}}:{{PORT|default(8080)}}"
