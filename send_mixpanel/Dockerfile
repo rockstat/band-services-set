@@ -1,4 +1,4 @@
-FROM rockstat/band-base-py
+FROM {band-base-py-image}
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
 
 WORKDIR /usr/src/services
