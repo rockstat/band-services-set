@@ -1,5 +1,9 @@
-FROM rockstat/band-base-py
+FROM {band-base-py-image}
+
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
+LABEL band.service.version="0.3.0"
+LABEL band.service.title="Store debug"
+LABEL band.service.def_position="3x4"
 
 WORKDIR /usr/src/services
 
