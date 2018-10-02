@@ -1,14 +1,11 @@
 import subprocess
-import os.path
 import asyncio
-import aiohttp
+from aiohttp import ClientSession
 import base64
 from time import time
 import ujson
 import urllib
-from band import logger, settings, app, expose, worker
-from prodict import Prodict
-from typing import List
+from band import logger, settings, expose, worker
 
 from .helpers import CopyClear, flatten_dict, prefixer
 
@@ -50,7 +47,7 @@ async def broadcast(**params):
 async def uploader():
     while True:
         try:
-            async with aiohttp.ClientSession() as session:
+            async with ClientSession() as session:
                 while True:
                     batch = state.grab()
                     if len(batch):

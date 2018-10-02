@@ -7,5 +7,5 @@ Listen events and write to output
 
 @expose.listener()
 async def broadcast(**params):
-    print(params)
+    logger.info('Broadcast', params=params)
 
