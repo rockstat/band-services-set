@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='band-services',
-    version='0.3.0',
+    version='0.4.0',
     author='Dmitry Rodin',
     author_email='madiedinro@gmail.com',
     license='MIT',
