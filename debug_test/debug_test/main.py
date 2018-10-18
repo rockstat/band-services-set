@@ -14,6 +14,12 @@ async def test2(**params):
 
 
 @expose.handler()
+async def long_method(**params):
+    await asyncio.sleep(15)
+    return response(params)
+
+
+@expose.handler()
 async def pix(**params):
     print(params)
     return response.pixel()
