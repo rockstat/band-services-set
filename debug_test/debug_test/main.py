@@ -1,17 +1,10 @@
 import asyncio
-import arrow
-from itertools import count
-from band import settings, logger, expose, response
+from band import expose, response
 
 
 @expose.handler()
 async def test1(**params):
     return None
-
-
-@expose.handler()
-async def wrong_params(a, b=2, c=7, **params):
-    return response(params, a, b, c)
 
 
 @expose.handler()
