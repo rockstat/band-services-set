@@ -20,6 +20,10 @@ async def long_method(**params):
 
 
 @expose.handler()
+async def error(**params):
+    return response.error('Some F*cking error')
+
+@expose.handler()
 async def pix(**params):
     print(params)
     return response.pixel()
