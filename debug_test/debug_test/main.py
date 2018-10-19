@@ -8,6 +8,12 @@ from band import settings, logger, expose, response
 async def test1(**params):
     return None
 
+
+@expose.handler()
+async def wrong_params(a, b=2, c=7, **params):
+    return response(params, a, b, c)
+
+
 @expose.handler()
 async def test2(**params):
     return response(params)
@@ -22,6 +28,7 @@ async def long_method(**params):
 @expose.handler()
 async def error(**params):
     return response.error('Some F*cking error')
+
 
 @expose.handler()
 async def pix(**params):
