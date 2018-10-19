@@ -1,4 +1,4 @@
-FROM rockstat/band-base-py
+FROM {band-base-py-image}
 WORKDIR /usr/src/services
 
 LABEL band.service.version="0.0.1"
