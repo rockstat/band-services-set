@@ -13,6 +13,11 @@ async def test2(**params):
 
 
 @expose.handler()
+async def data(**params):
+    return response.data(params)
+
+
+@expose.handler()
 async def long_method(**params):
     await asyncio.sleep(15)
     return response(params)
