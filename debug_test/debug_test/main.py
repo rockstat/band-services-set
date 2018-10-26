@@ -22,6 +22,11 @@ async def long_method(**params):
     await asyncio.sleep(15)
     return response(params)
 
+@expose.handler(timeout=18000)
+async def long_method2(**params):
+    await asyncio.sleep(15)
+    return response(params)
+
 
 @expose.handler()
 async def error(**params):
