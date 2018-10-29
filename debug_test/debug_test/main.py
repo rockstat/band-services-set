@@ -7,6 +7,21 @@ async def test1(**params):
     return None
 
 
+@expose.handler(alias='secret')
+async def alias(**params):
+    return {'message': 'you are catch me!'}
+
+
+@expose.handler(alias='secret', name='again')
+async def alias2(**params):
+    return {'message': 'again!'}
+
+
+@expose.handler(alias='go', name='*')
+async def wildcard(name, **params):
+    return {'name': name}
+
+
 @expose.handler()
 async def test2(**params):
     return response(params)
@@ -21,6 +36,7 @@ async def data(**params):
 async def long_method(**params):
     await asyncio.sleep(15)
     return response(params)
+
 
 @expose.handler(timeout=18000)
 async def long_method2(**params):
