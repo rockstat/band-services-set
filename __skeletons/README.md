@@ -1,6 +1,8 @@
 
 Look at https://github.com/rockstat/band-skeleton-py
 
+Usage:
+
 ```
 cookiecutter git+https://github.com/rockstat/band-skeleton-py
 ```
