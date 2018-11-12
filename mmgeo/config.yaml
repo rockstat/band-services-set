@@ -7,3 +7,9 @@ redis_params:
   listen_enrich: yes
 
 db_file: ./data/GeoLite2-City.mmdb
+
+track_prefix: in.gen.track
+
+props:
+  key: key
+  ip: td.ip
