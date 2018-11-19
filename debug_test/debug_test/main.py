@@ -17,7 +17,7 @@ async def alias2(**params):
     return {'message': 'again!'}
 
 
-@expose.handler(alias='go', name='*')
+@expose.handler(alias='test_go', name='*')
 async def wildcard(name, **params):
     return {'name': name}
 
