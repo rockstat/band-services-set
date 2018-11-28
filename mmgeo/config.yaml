@@ -8,7 +8,7 @@ redis_params:
 
 db_file: ./data/GeoLite2-City.mmdb
 
-track_prefix: in.gen.track
+key_prefix: in.gen.track
 
 props:
   key: key
