@@ -1,5 +1,0 @@
-#!/bin/bash
-# Dev runner
-MOD="${PWD##*/}"
-/usr/bin/env python3 -m $MOD
-exit 0
