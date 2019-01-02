@@ -1,5 +1,6 @@
 import asyncio
-from band import expose, response
+import aiohttp
+from band import expose, response, logger
 
 
 @expose.handler()
@@ -10,6 +11,34 @@ async def test1(**params):
 @expose.handler(alias='secret')
 async def alias(**params):
     return {'message': 'you are catch me!'}
+
+
+async def reader():
+    url = 'https://bolt.rstat.org/public/dg-lessons/100stripusers.log'
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as res:
+            if res.status == 200:
+                while True:
+                    data = await res.content.read(102400)
+                    if not data:
+                        break
+                    yield data
+                        
+                # async for block in res.content.read(102400):
+                #     yield block
+            else:
+                text = res.text()
+                logger.error(
+                    f'request error',
+                    s=res.status,
+                    t=text,
+                    h=res.headers)
+
+
+@expose()
+async def stream():
+    return reader()
+    
 
 
 @expose.handler(alias='secret', name='again')
