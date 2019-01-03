@@ -53,7 +53,7 @@ async def wildcard(name, **params):
 
 @expose.handler()
 async def test2(**params):
-    return response(params)
+    return response.data(params)
 
 
 @expose.handler()
@@ -64,13 +64,17 @@ async def data(**params):
 @expose.handler()
 async def long_method(**params):
     await asyncio.sleep(15)
-    return response(params)
+    return response.data(params)
 
 
 @expose.handler(timeout=18000)
 async def long_method2(**params):
     await asyncio.sleep(15)
-    return response(params)
+    return response.data(params)
+
+@expose.handler()
+async def err(**params):
+    return response.error('Some F*cking err')
 
 
 @expose.handler()
