@@ -1,11 +1,25 @@
 import asyncio
 import aiohttp
-from band import expose, response, logger
-
+from band import expose, response, logger, crontab, blocking
+import requests
+import time
 
 @expose.handler()
 async def test1(**params):
     return None
+
+
+@crontab('*/1 * * * *')
+@blocking()
+def my_blocking_code():
+    print('starting background task in custom process')
+    time.sleep(10)
+    data = requests.get('https://rest.db.ripe.net/search.json?query-string=178.57.86.210&flags=no-filtering&source=RIPE')
+    print(data)
+
+
+
+
 
 
 @expose.handler(alias='secret')
