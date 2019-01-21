@@ -18,10 +18,6 @@ def my_blocking_code():
     print(data)
 
 
-
-
-
-
 @expose.handler(alias='secret')
 async def alias(**params):
     return {'message': 'you are catch me!'}
