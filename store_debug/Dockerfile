@@ -1,4 +1,5 @@
-FROM {band-base-py-image}
+ARG BASE_CONTAINER=rockstat/band-base-py:3.7
+FROM $BASE_CONTAINER
 
 LABEL maintainer="Dmitry Rodin <madiedinro@gmail.com>"
 LABEL band.service.version="0.3.0"
