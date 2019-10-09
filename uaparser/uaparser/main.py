@@ -19,12 +19,15 @@ def crop(os=None, browser=None, device=None, **kwargs):
 
 @expose.enricher(keys=['in.gen.track'], props=dict(ua='td.ua'))
 @alru_cache(maxsize=512)
-async def enrich(ua, **params):
+async def enrich(**params):
     """
     Detect device type using User-Agent string
     https://github.com/selwin/python-user-agents
     """
     try:
+        ua = params.get('ua')
+        if not ua:
+            return
         parsed = parse(ua)
         res = Prodict(
             os_family=parsed.os.family,

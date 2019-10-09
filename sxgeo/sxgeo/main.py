@@ -43,7 +43,10 @@ def handle_location(city=None, country=None, region=None, **kwargs):
 
 @expose.enricher(keys=['in.gen.track'], props=dict(ip='td.ip'))
 @alru_cache(maxsize=512)
-async def enrich(ip, **params):
+async def enrich(**params):
+    ip = params.get('ip')
+    if not ip:
+        return
     if state.geodata:
         try:
             location = state.geodata.get_location(ip, detailed=True)
