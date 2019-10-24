@@ -34,8 +34,7 @@ async def enrich(**params):
             os_version=list(v if isinstance(v, int)
                             else 0 for v in parsed.os.version),
             browser_family=parsed.browser.family,
-            browser_version=list(v if isinstance(
-                v, int) else 0 for v in parsed.browser.version,),
+            browser_version=[(v if isinstance(v, int) else 0) for v in parsed.browser.version],
             device_family=parsed.device.family,
             device_brand=parsed.device.brand,
             device_model=parsed.device.model)
